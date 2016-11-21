@@ -1,13 +1,11 @@
 
-#include "nws.hpp"
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <getopt.h>
+#include "nwsimplex.hpp"
 
 using namespace std;
 
-struct Main;
 
 struct Main {
 
@@ -15,6 +13,7 @@ struct Main {
 
 	int main(int argCount, char** argVars) {
 
+		// parse arguments
 		title = argVars[0];
 		struct option options[] = {
 				{"help", no_argument, 0, 0},
@@ -44,17 +43,15 @@ struct Main {
 			}
 		}
 
+		// build network simplex solver
 		cout << "Network Simplex" << endl;
+		NWS nw(cin, NWS::FORMAT_DIMACS);
 
-		string s;
-		while (cin) {
-			getline(cin, s);
-			cout << s << endl;
+		cout << "Solving" << endl;
+		// call solver
+		nw.solve();
 
-			if (!s.compare("")) break; // break if empty line
-		}
-
-
+		// output results
 
 		return mainExit(0);
 	}

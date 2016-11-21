@@ -11,26 +11,49 @@ typedef Cap Flow;
 
 typedef int NodeID;
 typedef long long ArcID;
+#define UNDEF_NODE (NodeID)-1
+#define UNDEF_ARC (ArcID)-1
+
+typedef int Dist;
+#define INF_DIST (Dist)1000000000;
 
 struct Arc;
 struct Node;
 
-struct Arc
-{
-   union {
-	   Cap resCap; // residual capasity
-	   Cap cap;
-   };
-   Node& head; // arc head
-   Arc& rev; // reverse arc
+
+
+struct Arc {
+	union { // use anonymous union for alternate names -> different meanings for field reuse for space optimization
+		Cap resCap; // residual capasity
+		Cap cap;
+	};
+	NodeID head; // arc head
+	ArcID rev; // reverse arc
+
+	Dist l; // l(tail,head)
+
+	// todo: implement later
+	ArcID bPivotArcNext;
+	ArcID bPivotArcPrev;
 };
 
-struct Node
-{
-   Arc* first; // first outgoing arc
-   Arc* current; // current outgoing arc
-   long d; // distance label
+struct Node {
+	ArcID first; // first outgoing arc
+	ArcID cur; // current outgoing arc. if this node is v we are interested in (u,v) the reverse arc of cur
+	Dist d; // distance label
+
+	// data to represent the basis tree (S or T) this node belongs to
+	NodeID parent; // parent of this node in the tree
+	NodeID next; // next node in the tree (Linked list in DFS order)
+	NodeID stSize; // size of the subtree rooted at this node
+
+	// todo: implement later
+	NodeID bToRelabelNext;
+	NodeID bToRelablePrev;
+
 };
+
+
 
 
 #endif

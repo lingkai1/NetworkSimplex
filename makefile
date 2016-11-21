@@ -11,8 +11,9 @@ CPPC = g++
 RM = rm
 MKDIR = mkdir
 # default parameters
-CFLAGS_DBG = -std=c++0x -ggdb -Wall -O0
-CFLAGS_OPT = -std=c++0x -O4
+CFLAGS_COMMON = -std=c++0x -Wno-unused-variable
+CFLAGS_DBG = $(CFLAGS_COMMON) -ggdb -Wall -O0
+CFLAGS_OPT = $(CFLAGS_COMMON) -O4
 LFLAGS_DBG = 
 LFLAGS_OPT = 
 
@@ -26,6 +27,9 @@ NWS_IDIRS =
 NWS_OBJ =
 NWS_OBJ += $(NWS_ODIR)/main.o
 NWS_OBJ += $(NWS_ODIR)/timer.o
+NWS_OBJ += $(NWS_ODIR)/nwsimplex_misc.o
+NWS_OBJ += $(NWS_ODIR)/dimacs.o
+NWS_OBJ += $(NWS_ODIR)/solver.o
 NWS_CFLAGS = $(CFLAGS_DBG)
 NWS_BIN = $(BDIR)/nwsimplex
 NWS_BIN_OBJ = $(NWS_OBJ)
