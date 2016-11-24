@@ -4,13 +4,13 @@ using namespace std;
 
 // set the object in a state which makes destructor defined under any circumstance
 // this is not needed if we don't use pointers
-void NWS::initialize() {
+void NetworkMaxFlowSimplex::initialize() {
 	//nodes = nullptr;
 	//arcs = nullptr;
 }
 
 // constructors
-NWS::NWS(istream& is, int format) {
+NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format) {
 	initialize();
 	verbose = 0;
 	switch (format) {
@@ -23,7 +23,7 @@ NWS::NWS(istream& is, int format) {
 }
 
 // destructor
-NWS::~NWS() {
+NetworkMaxFlowSimplex::~NetworkMaxFlowSimplex() {
 	//if (nodes != nullptr) delete[] nodes;
 	//if (arcs != nullptr) delete[] arcs;
 }
@@ -32,7 +32,7 @@ NWS::~NWS() {
 // miscellaneous graph functions
 
 // unused stuff.
-ArcID NWS::findArc(NodeID u, NodeID v, bool binarySearch) {
+ArcID NetworkMaxFlowSimplex::findArc(NodeID u, NodeID v, bool binarySearch) {
 	typename vector<Arc>::iterator it;
 	if (!binarySearch) {
 		it = find_if(arcs.begin()+nodes[u].first, arcs.begin()+nodes[u+1].first, [&v](Arc arc){ return v == arc.head; });

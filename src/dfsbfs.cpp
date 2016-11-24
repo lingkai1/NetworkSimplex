@@ -22,7 +22,7 @@ typename QueuePop,
 typename ColorSet,
 typename ColorGet
 >
-inline void NWS::bfs(NodeID s,
+inline void NetworkMaxFlowSimplex::bfs(NodeID s,
 		const PreProcessNode& preProcessNode,
 		const PostProcessNode& postProcessNode,
 		const ProcessArc& processArc,
@@ -58,7 +58,7 @@ template <
 typename PreProcessNode,
 typename PostProcessNode,
 typename ProcessArc>
-inline void NWS::bfs(NodeID s,
+inline void NetworkMaxFlowSimplex::bfs(NodeID s,
 		const PreProcessNode& preProcessNode,
 		const PostProcessNode& postProcessNode,
 		const ProcessArc& processArc,
@@ -94,7 +94,7 @@ typename PostOrderArc,
 typename ColorSet,
 typename ColorGet
 >
-inline void NWS::dfs_r(NodeID u,
+inline void NetworkMaxFlowSimplex::dfs_r(NodeID u,
 		const PreOrderNode& preOrderNode,
 		const PostOrderNode& postOrderNode,
 		const PreOrderArc& preOrderArc,
@@ -124,7 +124,7 @@ typename PostOrderNode,
 typename PreOrderArc,
 typename PostOrderArc
 >
-inline void NWS::dfs_r(NodeID u,
+inline void NetworkMaxFlowSimplex::dfs_r(NodeID u,
 		const PreOrderNode& preOrderNode,
 		const PostOrderNode& postOrderNode,
 		const PreOrderArc& preOrderArc,
@@ -158,7 +158,7 @@ typename PostStackPop,
 typename ColorSet,
 typename ColorGet
 >
-inline void NWS::dfs_i(NodeID s,
+inline void NetworkMaxFlowSimplex::dfs_i(NodeID s,
 		const PreOrderNode& preOrderNode,
 		const PostOrderNode& postOrderNode,
 		const PreOrderArc& preOrderArc,
@@ -210,7 +210,7 @@ typename PostOrderNode,
 typename PreOrderArc,
 typename PostOrderArc
 >
-inline void NWS::dfs_i(NodeID s,
+inline void NetworkMaxFlowSimplex::dfs_i(NodeID s,
 		const PreOrderNode& preOrderNode,
 		const PostOrderNode& postOrderNode,
 		const PreOrderArc& preOrderArc,
@@ -254,7 +254,7 @@ typename PostStackPop,
 typename ColorSet,
 typename ColorGet
 >
-inline void NWS::dfs_i2(NodeID s,
+inline void NetworkMaxFlowSimplex::dfs_i2(NodeID s,
 		const PreOrderNode& preOrderNode,
 		const PostOrderNode& postOrderNode,
 		const PreOrderArc& preOrderArc,
@@ -324,7 +324,7 @@ typename PostOrderNode,
 typename PreOrderArc,
 typename PostOrderArc
 >
-inline void NWS::dfs_i2(NodeID s,
+inline void NetworkMaxFlowSimplex::dfs_i2(NodeID s,
 		const PreOrderNode& preOrderNode,
 		const PostOrderNode& postOrderNode,
 		const PreOrderArc& preOrderArc,

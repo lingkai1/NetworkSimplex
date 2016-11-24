@@ -4,7 +4,7 @@
 
 using namespace std;
 
-void NWS::constructorDimacs(istream& is) {
+void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 	stringstream ss;
 	string line;
 	int lineNum;
@@ -170,7 +170,7 @@ void NWS::constructorDimacs(istream& is) {
 
 }
 
-void NWS::constructorDimacsFail(int lineNum, int code) {
+void NetworkMaxFlowSimplex::constructorDimacsFail(int lineNum, int code) {
 	cerr << "Error: ";
 	switch (code) {
 	case 1: cerr << "Cannot read line " << lineNum << endl; break;

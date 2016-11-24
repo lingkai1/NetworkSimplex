@@ -5,7 +5,7 @@ using namespace std;
 
 
 // main network simplex function
-void NWS::solve() {
+void NetworkMaxFlowSimplex::solve() {
 
 	flow = 0;
 
@@ -212,7 +212,7 @@ void NWS::solve() {
 
 }
 
-void NWS::printSubTree(NodeID root) {
+void NetworkMaxFlowSimplex::printSubTree(NodeID root) {
 	forAllSubTree(root, [&](NodeID u){
 		Node& nu = nodes[u];
 		if (u != root) {
@@ -221,7 +221,7 @@ void NWS::printSubTree(NodeID root) {
 	});
 }
 
-void NWS::printS() {
+void NetworkMaxFlowSimplex::printS() {
 	cout << "S tree rooted at " << source << endl;
 	vector<int> color(n);
 	fill(color.begin(), color.end(), COLOR_WHITE);
@@ -243,7 +243,7 @@ void NWS::printS() {
 			[&](NodeID u, ArcID i){},
 			color);
 }
-void NWS::printT() {
+void NetworkMaxFlowSimplex::printT() {
 	cout << "T tree rooted at " << sink << endl;
 	vector<int> color(n);
 	fill(color.begin(), color.end(), COLOR_WHITE);
@@ -266,7 +266,7 @@ void NWS::printT() {
 			color);
 }
 
-void NWS::buildInitialBasis() {
+void NetworkMaxFlowSimplex::buildInitialBasis() {
 	forAllNodes(u) {
 		Node& nu = nodes[u];
 		nu.d = u != sink ? 0 : 1; // every node starts with d = 0 except sink (d = 1)
@@ -385,7 +385,7 @@ void NWS::buildInitialBasis() {
 
 
 // not yet used
-void NWS::prepareNextPivot() {
+void NetworkMaxFlowSimplex::prepareNextPivot() {
 	// to call after an augmentation to make vertices current, relabel to prepare for next pivot
 
 	forAllNodes(v) {
@@ -405,7 +405,7 @@ void NWS::prepareNextPivot() {
 
 // todo: implement current arcs and relabeling in algorithm
 // not yet used
-bool NWS::makeCur(NodeID v) {
+bool NetworkMaxFlowSimplex::makeCur(NodeID v) {
 	Node& nv = nodes[v];
 	if (nv.first >= nodes[v+1].first) // no arc incident arc to v
 		return true;
@@ -423,7 +423,7 @@ bool NWS::makeCur(NodeID v) {
 }
 // todo: implement relabeling
 // not yet used
-void NWS::relabel(NodeID v) {
+void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	Node& nv = nodes[v];
 	assert(nv.first < nodes[v+1].first); // there is at least one incident arc to v
 	Dist oldD = nv.d;
@@ -452,7 +452,7 @@ void NWS::relabel(NodeID v) {
 
 
 // now only bucket[d=0] is used
-void NWS::pivotInsert(ArcID i) {
+void NetworkMaxFlowSimplex::pivotInsert(ArcID i) {
 	Arc& ai = arcs[i];
 	ArcID j = bPivots[0].last;
 	if (j != UNDEF_ARC)
@@ -465,7 +465,7 @@ void NWS::pivotInsert(ArcID i) {
 	if (verbose >= 2) cout <<"Pivot inserted: ("<<arcs[arcs[i].rev].head<<","<<arcs[i].head<<")"<<endl;
 }
 // O(n) deletion since only level d=0 is used now
-bool NWS::pivotDelete(ArcID i) {
+bool NetworkMaxFlowSimplex::pivotDelete(ArcID i) {
 	ArcID j = bPivots[0].first;
 	while (j != UNDEF_ARC) {
 		Arc& aj = arcs[j];
@@ -491,7 +491,7 @@ bool NWS::pivotDelete(ArcID i) {
 	}
 	return false;
 }
-bool NWS::pivotExtractMin(ArcID& i) {
+bool NetworkMaxFlowSimplex::pivotExtractMin(ArcID& i) {
 	i = bPivots[0].first;
 	if (i != UNDEF_ARC) {
 		Arc& ai = arcs[i];
@@ -512,7 +512,7 @@ bool NWS::pivotExtractMin(ArcID& i) {
 
 
 
-void NWS::testBFS() {
+void NetworkMaxFlowSimplex::testBFS() {
 	vector<int> color(n, COLOR_WHITE);
 
 	cout << "BFS" << endl;
@@ -542,7 +542,7 @@ void NWS::testBFS() {
 
 }
 
-void NWS::testDFS() {
+void NetworkMaxFlowSimplex::testDFS() {
 	vector<int> color(n, COLOR_WHITE);
 
 	cout << "DFS" << endl;

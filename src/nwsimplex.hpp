@@ -1,8 +1,6 @@
 #ifndef NWS_H_
 #define NWS_H_
 
-#define __cplusplus 201103L
-
 #include "types.hpp"
 //#define NDEBUG
 #include "assert.h"
@@ -25,7 +23,7 @@
 		forAllOutArcs(u, i, iStop)
 
 
-class NWS {
+class NetworkMaxFlowSimplex {
 public:
 	const static int FORMAT_DIMACS = 1;
 
@@ -47,9 +45,9 @@ public:
 	std::vector<BucketPivot> bPivots; // for each level d first pivot arc
 	std::stack<NodeID> toRelabel; // todo remove this and change implementation
 
-	NWS(std::istream& is, int format = FORMAT_DIMACS);
+	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS);
 	//NWS(int n, int m);
-	~NWS();
+	~NetworkMaxFlowSimplex();
 
 	void solve();
 	void buildInitialBasis();
@@ -67,7 +65,7 @@ public:
 
 	template <typename Op> inline void forAllSubTree(NodeID root, const Op& op) {
 		NodeID u = root;
-		for (int k = 0; k < nodes[root].stSize; k++) {
+		for (NodeID k = 0; k < nodes[root].stSize; k++) {
 			op(u);
 			u = nodes[u].next;
 		}

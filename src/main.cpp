@@ -45,7 +45,7 @@ struct Main {
 
 		// build network simplex solver
 		cout << "Network Simplex" << endl;
-		NWS nw(cin, NWS::FORMAT_DIMACS);
+		NetworkMaxFlowSimplex nw(cin, NetworkMaxFlowSimplex::FORMAT_DIMACS);
 
 		cout << "Solving" << endl;
 		// call solver
