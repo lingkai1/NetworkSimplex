@@ -33,8 +33,8 @@ struct Arc {
 	Dist l; // l(tail,head)
 
 	// todo: implement later
-	ArcID bPivotArcNext;
-	ArcID bPivotArcPrev;
+	ArcID bPivotNext;
+	ArcID bPivotPrev;
 };
 
 struct Node {
@@ -43,14 +43,25 @@ struct Node {
 	Dist d; // distance label
 
 	// data to represent the basis tree (S or T) this node belongs to
-	NodeID parent; // parent of this node in the tree
+	ArcID parent; // arc pointing to the parent of this node
 	NodeID next; // next node in the tree (Linked list in DFS order)
 	NodeID stSize; // size of the subtree rooted at this node
+	int tree; // current tree
 
 	// todo: implement later
 	NodeID bToRelabelNext;
 	NodeID bToRelablePrev;
 
+};
+
+struct BucketToRelabel {
+	NodeID first;
+	NodeID last;
+};
+
+struct BucketPivot {
+	ArcID first;
+	ArcID last;
 };
 
 

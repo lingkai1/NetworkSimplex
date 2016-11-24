@@ -39,10 +39,10 @@ NWS_LFLAGS = $(LFLAGS_DBG)
 # rules
 $(NWS_ODIR): 
 	$(MKDIR) -p $(NWS_ODIR)
-$(NWS_ODIR)/%.o: $(NWS_SDIR)/%.cpp $(NWS_ODIR)
+$(NWS_ODIR)/%.o: $(NWS_SDIR)/%.cpp | $(NWS_ODIR)
 	$(CPPC) $(NWS_CFLAGS) -MMD -c $< -o $@ $(NWS_IDIRS)
 -include $(NWS_ODIR)/*.d
-$(NWS_BIN): $(NWS_BIN_OBJ) $(BDIR)
+$(NWS_BIN): $(NWS_BIN_OBJ) | $(BDIR)
 	$(CPPC) -o $(NWS_BIN) $(NWS_BIN_OBJ) $(NWS_LFLAGS) $(NWS_LIBS) $(NWS_LDIRS)
 
 
@@ -56,4 +56,3 @@ cleanobj:
 	$(RM) $(ODIR) -rf
 cleanbin:
 	$(RM) $(NWS_BIN) -f
-

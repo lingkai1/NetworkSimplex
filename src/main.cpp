@@ -49,9 +49,12 @@ struct Main {
 
 		cout << "Solving" << endl;
 		// call solver
+
+		nw.verbose = 1;
 		nw.solve();
 
 		// output results
+		 cout << "Max Flow: " << nw.flow << endl;
 
 		return mainExit(0);
 	}

@@ -11,7 +11,7 @@ void NWS::constructorDimacs(istream& is) {
 	string s;
 	char c;
 	NodeID u;
-	ArcID a;
+	ArcID i;
 	// not sure this is the most efficient way of parsing text files in C++. May be improved.
 
 	if (verbose >= 1) cout << "Parsing dimacs format" << endl;
@@ -43,7 +43,7 @@ void NWS::constructorDimacs(istream& is) {
 	vector<NodeID>& tails = *new vector<NodeID>();
 	tails.reserve(2*m);
 	Arc arc;
-	a = 0;
+	i = 0;
 	bool sourceSet = false, sinkSet = false;
 	ArcID nArcsProcessed = 0;
 	while (!sourceSet || !sinkSet || nArcsProcessed < m) {
@@ -67,18 +67,18 @@ void NWS::constructorDimacs(istream& is) {
 				if (!(ss >> u)) return constructorDimacsFail(lineNum, 2);
 				if (!(ss >> arc.head)) return constructorDimacsFail(lineNum, 2);
 				if (!(ss >> arc.resCap)) return constructorDimacsFail(lineNum, 2);
-				arc.rev = a + 1;
+				arc.rev = i + 1;
 				tails.push_back(u);
 				arcs.push_back(arc);
-				a++;
+				i++;
 
 				// add reverse arc
 				swap(u, arc.head);
 				arc.resCap = 0;
-				arc.rev = a - 1;
+				arc.rev = i - 1;
 				tails.push_back(u);
 				arcs.push_back(arc);
-				a++;
+				i++;
 
 				nArcsProcessed++;
 			} break;
@@ -102,43 +102,43 @@ void NWS::constructorDimacs(istream& is) {
 	// determine reverse arcs
 	// compute p inverse
 	vector<ArcID>& q = *new vector<ArcID>(m);
-	for (a = 0; a < m; a++) q[p[a]] = a;
+	for (i = 0; i < m; i++) q[p[i]] = i;
 	// fix reverse arcs
-	for (a = 0; a < m; a++) {
-		arcs[a].rev = q[arcs[a].rev];
+	for (i = 0; i < m; i++) {
+		arcs[i].rev = q[arcs[i].rev];
 	}
 	delete &q;
 	delete &p;
 
 	// eliminate parallel arcs and fix reverse arcs again
 	ArcID na;
-	for (a = 0, na = 0; a < m; ) {
-		ArcID revMin = arcs[a].rev;
+	for (i = 0, na = 0; i < m; ) {
+		ArcID revMin = arcs[i].rev;
 		Cap totCap = 0;
 		do {
-			if (arcs[a].rev < revMin)
-				revMin = arcs[a].rev;
-			totCap += arcs[a].resCap;
-			a++;
-		} while (a < m && tails[a] == tails[na] && arcs[a].head == arcs[na].head);
+			if (arcs[i].rev < revMin)
+				revMin = arcs[i].rev;
+			totCap += arcs[i].resCap;
+			i++;
+		} while (i < m && tails[i] == tails[na] && arcs[i].head == arcs[na].head);
 		if (tails[na] < arcs[na].head)
 			arcs[revMin].rev = na;
 		else
 			arcs[arcs[na].rev].rev = na;
 		arcs[na].resCap = totCap;
 		na++;
-		if (a < m) {
-			arcs[na] = arcs[a];
-			tails[na] = tails[a];
+		if (i < m) {
+			arcs[na] = arcs[i];
+			tails[na] = tails[i];
 		}
 	}
 	m = na;
 
 	// determine first arcs
-	for (a = 0; a < m; a++) {
-		u = tails[a];
+	for (i = 0; i < m; i++) {
+		u = tails[i];
 		if (nodes[u].first == UNDEF_ARC)
-			nodes[u].first = a;
+			nodes[u].first = i;
 	}
 	// sentinel node
 	nSentinel = nMax+1;
@@ -155,16 +155,16 @@ void NWS::constructorDimacs(istream& is) {
 	arcs.shrink_to_fit();
 
 
-	bToRelabelFirst.resize(n);
-	bPivotArcFirst.resize(n);
+	bToRelabel.resize(n);
+	bPivots.resize(n);
 
 
 	if (verbose >= 1) cout << "n: " << n << " m: " << m << endl;
 
 	if (verbose >= 2) {
-		forAllArcs(u, a, aStop) {
-			Arc& arc = arcs[a];
-			cout << "Arc: " << a << " (" << u << ", " << arc.head << ") c: " << arc.resCap << " rev_id: " << arc.rev << endl;
+		forAllArcs(u, i, is) {
+			Arc& arc = arcs[i];
+			cout << "Arc: " << i << " (" << u << ", " << arc.head << ") c: " << arc.resCap << " rev_id: " << arc.rev << endl;
 		}
 	}
 

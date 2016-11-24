@@ -4,9 +4,14 @@
 
 #include "nwsimplex.hpp"
 
+#define COLOR_WHITE 0
+#define COLOR_GREY  1
+#define COLOR_BLACK 2
+#define COLOR_BLUE 3
+
 
 // Iterative implementation of BFS with pre and post processing of nodes and arcs defined
-// based on a node queue
+// based on i node queue
 template <
 typename PreProcessNode,
 typename PostProcessNode,
@@ -36,15 +41,17 @@ inline void NWS::bfs(NodeID s,
 	while (!queueIsEmpty()) {
 		NodeID u = queuePop();
 		preProcessNode(u);
-		colorSet(u, COLOR_BLACK);
-		forAllOutArcs(u, a, aStop) {
-			NodeID v = arcs[a].head;
-			if (processArc(u, a, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
+		colorSet(u, COLOR_BLACK); // regard u as leaf by default (u's color unused for other purposes in the next lines, is used to hold this information now)
+		forAllOutArcs(u, i, is) {
+			NodeID v = arcs[i].head;
+			if (processArc(u, i, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
+				colorSet(u, COLOR_GREY); // u is not a leaf
 				queuePush(v);
 				colorSet(v, COLOR_GREY);
 			}
 		}
-		postProcessNode(u);
+		postProcessNode(u, colorGet(u)); // color to determine u is a leaf or not (GREY=not leaf, BLACK=leaf)
+		colorSet(u, COLOR_BLACK); // now u's black color only mean it is processed (does not mean it is necessarily a leaf)
 	}
 }
 template <
@@ -99,16 +106,17 @@ inline void NWS::dfs_r(NodeID u,
 	// grey: ancestor visited node
 	// black: visited node in another branch or descendant.
 	preOrderNode(u);
-	colorSet(u, COLOR_GREY);
-	forAllOutArcs(u, a, aStop) {
-		NodeID v = arcs[a].head;
-		if (preOrderArc(u, a, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
+	colorSet(u, COLOR_BLACK);
+	forAllOutArcs(u, i, is) {
+		NodeID v = arcs[i].head;
+		if (preOrderArc(u, i, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
+			colorSet(u, COLOR_GREY);
 			dfs_r(v, preOrderNode, postOrderNode, preOrderArc, postOrderArc, colorSet, colorGet);
-			colorSet(v, COLOR_BLACK);
-			postOrderArc(u, a);
+			postOrderArc(u, i);
 		}
 	}
-	postOrderNode(u);
+	postOrderNode(u, colorGet(u));
+	colorSet(u, COLOR_BLACK);
 }
 template <
 typename PreOrderNode,
@@ -133,65 +141,6 @@ inline void NWS::dfs_r(NodeID u,
 	);
 }
 
-// simple iterative node stack based implementation of DFS with only pre order processing of node and arc defined
-template <
-typename PreOrderNode,
-typename PreOrderArc,
-typename PreNodeStackIsEmpty,
-typename PreNodeStackPush,
-typename PreNodeStackPop,
-typename ColorSet,
-typename ColorGet
->
-inline void NWS::dfs_ip(NodeID s,
-		const PreOrderNode& preOrderNode,
-		const PreOrderArc& preOrderArc,
-		const PreNodeStackIsEmpty& preStackIsEmpty,
-		const PreNodeStackPush& preStackPush,
-		const PreNodeStackPop& preStackPop,
-		const ColorSet& colorSet,
-		const ColorGet& colorGet
-) {
-	// prestack: stack of next nodes to visit
-	// white: unvisited, untouched node
-	// grey: ancestor visited node
-	// black: visited node in another branch or descendant.
-	preStackPush(s);
-	colorSet(s, COLOR_GREY);
-	while (!preStackIsEmpty()) {
-		NodeID u = preStackPop();
-		preOrderNode(u);
-		colorSet(u, COLOR_BLACK);
-		forAllOutArcs(u, a, aStop) {
-			NodeID v = arcs[a].head;
-			if (preOrderArc(u, a, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
-				colorSet(u, COLOR_GREY);
-				preStackPush(v);
-				colorSet(v, COLOR_GREY);
-			}
-		}
-	}
-}
-template <
-typename PreOrderNode,
-typename PreOrderArc
->
-inline void NWS::dfs_ip(NodeID s,
-		const PreOrderNode& preOrderNode,
-		const PreOrderArc& preOrderArc,
-		std::vector<int>& color
-) {
-	std::stack<NodeID> pre;
-	return dfs_ip(s,
-			preOrderNode,
-			preOrderArc,
-			[&](){ return pre.empty(); },
-			[&](NodeID u){ pre.push(u); },
-			[&](){ NodeID u = pre.top(); pre.pop(); return u; },
-			[&](NodeID u, int c){ color[u] = c; },
-			[&](NodeID u){ return color[u]; }
-	);
-}
 
 // Iterative implementation of DFS with pre and post processing of nodes and arcs defined
 // based on two stacks of arcs
@@ -229,28 +178,27 @@ inline void NWS::dfs_i(NodeID s,
 	// blue: unvisited node, saved in the prestack
 	// grey: ancestor visited node
 	// black: visited node in another branch or descendant.
-	NodeID pu, u; ArcID a;
+	NodeID pu, u; ArcID i;
 	u = s;
 	do {
 		preOrderNode(u);
-		colorSet(u, COLOR_BLACK); // regard u as a leaf by default
-		forAllOutArcs(u, a, aStop) {
-			NodeID v = arcs[a].head;
-			if (preOrderArc(u, a, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
-				colorSet(u, COLOR_GREY); // u is not a leaf
-				preStackPush(u, a);
+		colorSet(u, COLOR_BLACK); // regard u as i leaf by default
+		forAllOutArcs(u, i, is) {
+			NodeID v = arcs[i].head;
+			if (preOrderArc(u, i, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
+				colorSet(u, COLOR_GREY); // u is not i leaf
+				preStackPush(u, i);
 				colorSet(v, COLOR_BLUE); // marked as in the pre stack
 			}
-			//else if (colorGet(v) != COLOR_BLUE) preOrderArc(u, a, colorGet(v));
 		}
 
-		if (colorGet(u) == COLOR_BLACK) { // if u is a leaf go backwards until next branch
+		if (colorGet(u) == COLOR_BLACK) { // if u is i leaf go backwards until next branch
 			if (!postStackIsEmpty()) {
 				pu = u;
 
 				NodeID pv;
 				if (!preStackIsEmpty()) {
-					preStackPop(pv, a); preStackPush(pv, a); // pv := next arc tail
+					preStackPop(pv, i); preStackPush(pv, i); // pv := next arc tail
 				}
 				else pv = s; // dfs done, go back to root
 
@@ -259,8 +207,8 @@ inline void NWS::dfs_i(NodeID s,
 					assert(pu != s);
 					postOrderNode(pu, colorGet(pu));
 					colorSet(pu, COLOR_BLACK);
-					u = postStackPop(pu, a);
-					postOrderArc(pu, a);
+					u = postStackPop(pu, i);
+					postOrderArc(pu, i);
 				}
 			}
 			else assert(u == s);
@@ -268,9 +216,8 @@ inline void NWS::dfs_i(NodeID s,
 
 
 		if (!preStackIsEmpty()) {
-			u = preStackPop(pu, a); // where we go next
-			postStackPush(pu, a); // save where we come from
-			//preOrderArc(pu, a, COLOR_WHITE);
+			u = preStackPop(pu, i); // where we go next
+			postStackPush(pu, i); // save where we come from
 		} else {
 			postOrderNode(s, colorGet(s));
 			break;
@@ -290,7 +237,7 @@ inline void NWS::dfs_i(NodeID s,
 		const PostOrderArc& postOrderArc,
 		std::vector<int>& color
 ) {
-	// implementation with double ended stack
+	// implementation with double ended queue (two stacks)
 	std::deque<ArcID> q;
 	int pre = 0, post = 0;
 	return dfs_i(s,
@@ -299,11 +246,11 @@ inline void NWS::dfs_i(NodeID s,
 			preOrderArc,
 			postOrderArc,
 			[&](){ return pre == 0; },
-			[&](NodeID pu, ArcID a){ pre++; q.push_back(a); },
-			[&](NodeID& pu, ArcID& a){ pre--; a = q.back(); pu = arcs[arcs[a].rev].head; q.pop_back(); return arcs[a].head; },
+			[&](NodeID pu, ArcID i){ pre++; q.push_back(i); },
+			[&](NodeID& pu, ArcID& i){ pre--; i = q.back(); pu = arcs[arcs[i].rev].head; q.pop_back(); return arcs[i].head; },
 			[&](){ return post == 0; },
-			[&](NodeID pu, ArcID a){ post++; q.push_front(a); },
-			[&](NodeID& pu, ArcID& a){ post--; a = q.front(); pu = arcs[arcs[a].rev].head; q.pop_front(); return arcs[a].head; },
+			[&](NodeID pu, ArcID i){ post++; q.push_front(i); },
+			[&](NodeID& pu, ArcID& i){ post--; i = q.front(); pu = arcs[arcs[i].rev].head; q.pop_front(); return arcs[i].head; },
 			[&](NodeID u, int c){ color[u] = c; },
 			[&](NodeID u){ return color[u]; }
 	);
@@ -317,11 +264,11 @@ inline void NWS::dfs_i(NodeID s,
 			preOrderArc,
 			postOrderArc,
 			[&](){ return pre.empty(); },
-			[&](NodeID pu, ArcID a){ pre.push(std::pair<NodeID, ArcID>(pu, a)); },
-			[&](NodeID& pu, ArcID& a){ pu = pre.top().first; a = pre.top().second; pre.pop(); return arcs[a].head; },
+			[&](NodeID pu, ArcID i){ pre.push(std::pair<NodeID, ArcID>(pu, i)); },
+			[&](NodeID& pu, ArcID& i){ pu = pre.top().first; i = pre.top().second; pre.pop(); return arcs[i].head; },
 			[&](){ return post.empty(); },
-			[&](NodeID pu, ArcID a){ post.push(std::pair<NodeID, ArcID>(pu, a)); },
-			[&](NodeID& pu, ArcID& a){ pu = post.top().first; a = post.top().second; post.pop(); return arcs[a].head; },
+			[&](NodeID pu, ArcID i){ post.push(std::pair<NodeID, ArcID>(pu, i)); },
+			[&](NodeID& pu, ArcID& i){ pu = post.top().first; i = post.top().second; post.pop(); return arcs[i].head; },
 			[&](NodeID u, int c){ color[u] = c; },
 			[&](NodeID u){ return color[u]; }
 	);

@@ -10,10 +10,6 @@ template <typename PreOrderNode, typename PostOrderNode, typename PreOrderArc, t
 inline void dfs_r(NodeID u, const PreOrderNode& preOrderNode, const PostOrderNode& postOrderNode, const PreOrderArc& preOrderArc, const PostOrderArc& postOrderArc, const ColorSet& colorSet, const ColorGet& colorGet);
 template <typename PreOrderNode, typename PostOrderNode, typename PreOrderArc, typename PostOrderArc>
 inline void dfs_r(NodeID u, const PreOrderNode& preOrderNode, const PostOrderNode& postOrderNode, const PreOrderArc& preOrderArc, const PostOrderArc& postOrderArc, std::vector<int>& color);
-template <typename PreOrderNode, typename PreOrderArc, typename PreNodeStackIsEmpty, typename PreNodeStackPush, typename PreNodeStackPop, typename ColorSet, typename ColorGet>
-inline void dfs_ip(NodeID s, const PreOrderNode& preOrderNode, const PreOrderArc& preOrderArc, const PreNodeStackIsEmpty& preStackIsEmpty, const PreNodeStackPush& preStackPush, const PreNodeStackPop& preStackPop, const ColorSet& colorSet, const ColorGet& colorGet);
-template <typename PreOrderNode, typename PreOrderArc>
-inline void dfs_ip(NodeID s, const PreOrderNode& preOrderNode, const PreOrderArc& preOrderArc, std::vector<int>& color);
 template <typename PreOrderNode, typename PostOrderNode, typename PreOrderArc, typename PostOrderArc, typename PreStackIsEmpty, typename PreStackPush, typename PreStackPop, typename PostStackIsEmpty, typename PostStackPush, typename PostStackPop, typename ColorSet, typename ColorGet>
 inline void dfs_i(NodeID s, const PreOrderNode& preOrderNode, const PostOrderNode& postOrderNode, const PreOrderArc& preOrderArc, const PostOrderArc& postOrderArc, const PreStackIsEmpty& preStackIsEmpty, const PreStackPush& preStackPush, const PreStackPop& preStackPop, const PostStackIsEmpty& postStackIsEmpty, const PostStackPush& postStackPush, const PostStackPop& postStackPop, const ColorSet& colorSet, const ColorGet& colorGet);
 template <typename PreOrderNode, typename PostOrderNode, typename PreOrderArc, typename PostOrderArc>
@@ -28,7 +24,7 @@ void testBFS() {
 			[&](NodeID u){
 		std::cout << "pre:  " << u << std::endl;
 	},
-	[&](NodeID u){
+	[&](NodeID u, int color){
 		std::cout << "post: " << u << std::endl;
 	},
 	[&](NodeID u, ArcID a, int headColor){

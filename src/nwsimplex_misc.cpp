@@ -12,6 +12,7 @@ void NWS::initialize() {
 // constructors
 NWS::NWS(istream& is, int format) {
 	initialize();
+	verbose = 0;
 	switch (format) {
 	case FORMAT_DIMACS: {
 		constructorDimacs(is);
