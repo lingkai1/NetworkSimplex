@@ -7,10 +7,10 @@
 #define COLOR_WHITE 0
 #define COLOR_GREY  1
 #define COLOR_BLACK 2
-#define COLOR_BLUE 3
 
 
-// Iterative implementation of BFS with pre and post processing of nodes and arcs defined
+
+// Iterative implementation of BFS with pre and post processing of nodes and arcs user-defined
 // based on i node queue
 template <
 typename PreProcessNode,
@@ -50,7 +50,7 @@ inline void NWS::bfs(NodeID s,
 				colorSet(v, COLOR_GREY);
 			}
 		}
-		postProcessNode(u, colorGet(u)); // color to determine u is a leaf or not (GREY=not leaf, BLACK=leaf)
+		postProcessNode(u, colorGet(u) == COLOR_BLACK);
 		colorSet(u, COLOR_BLACK); // now u's black color only mean it is processed (does not mean it is necessarily a leaf)
 	}
 }
@@ -84,7 +84,7 @@ inline void NWS::bfs(NodeID s,
 
 
 
-// Recursive implementation of DFS with pre and post processing of nodes and arcs defined
+// Recursive implementation of DFS with pre and post processing of nodes and arcs user-defined
 // advantage: no stack needed (call stack implicitly used), disadvantage: may need very large call stack
 template <
 typename PreOrderNode,
@@ -115,7 +115,7 @@ inline void NWS::dfs_r(NodeID u,
 			postOrderArc(u, i);
 		}
 	}
-	postOrderNode(u, colorGet(u));
+	postOrderNode(u, colorGet(u) == COLOR_BLACK);
 	colorSet(u, COLOR_BLACK);
 }
 template <
@@ -142,8 +142,104 @@ inline void NWS::dfs_r(NodeID u,
 }
 
 
-// Iterative implementation of DFS with pre and post processing of nodes and arcs defined
+
+
+
+// Iterative implementation of DFS with pre and post processing of nodes and arcs user-defined
+// based on 1 stack of arcs
+template <
+typename PreOrderNode,
+typename PostOrderNode,
+typename PreOrderArc,
+typename PostOrderArc,
+typename PostStackIsEmpty,
+typename PostStackPush,
+typename PostStackPop,
+typename ColorSet,
+typename ColorGet
+>
+inline void NWS::dfs_i(NodeID s,
+		const PreOrderNode& preOrderNode,
+		const PostOrderNode& postOrderNode,
+		const PreOrderArc& preOrderArc,
+		const PostOrderArc& postOrderArc,
+		const PostStackIsEmpty& postStackIsEmpty,
+		const PostStackPush& postStackPush,
+		const PostStackPop& postStackPop,
+		const ColorSet& colorSet,
+		const ColorGet& colorGet
+) {
+	// poststack: stack of visited arcs
+	// white: unvisited, untouched node
+	// grey: ancestor visited node
+	// black: visited node in another branch or descendant.
+	NodeID pu, u; ArcID i;
+	bool nextLeaf;
+	u = s;
+	do {
+		if (colorGet(u) == COLOR_WHITE)
+			preOrderNode(u);
+		colorSet(u, COLOR_BLACK); // no more children to explore
+		forAllOutArcs(u, i, is) {
+			NodeID v = arcs[i].head;
+			if (preOrderArc(u, i, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
+				colorSet(u, COLOR_GREY); // u has more children to explore
+				postStackPush(u, i); // save where we come from
+				u = v;
+				nextLeaf = true;
+				break;
+			}
+		}
+
+		if (colorGet(u) == COLOR_BLACK) { // if u has no more children to explore
+			if (!postStackIsEmpty()) {
+				postOrderNode(u, nextLeaf);
+				postStackPop(pu, i);
+				postOrderArc(pu, i);
+				u = pu;
+				nextLeaf = false;
+			}
+			else break;
+		}
+	} while (true);
+	postOrderNode(s, colorGet(s) == COLOR_BLACK);
+}
+template <
+typename PreOrderNode,
+typename PostOrderNode,
+typename PreOrderArc,
+typename PostOrderArc
+>
+inline void NWS::dfs_i(NodeID s,
+		const PreOrderNode& preOrderNode,
+		const PostOrderNode& postOrderNode,
+		const PreOrderArc& preOrderArc,
+		const PostOrderArc& postOrderArc,
+		std::vector<int>& color
+) {
+	std::stack<ArcID> post;
+	return dfs_i(s,
+			preOrderNode,
+			postOrderNode,
+			preOrderArc,
+			postOrderArc,
+			[&](){ return post.empty(); },
+			[&](NodeID pu, ArcID i){ post.push(i); },
+			[&](NodeID& pu, ArcID& i){ i = post.top(); pu = arcs[arcs[i].rev].head; post.pop(); return arcs[i].head; },
+			[&](NodeID u, int c){ color[u] = c; },
+			[&](NodeID u){ return color[u]; }
+	);
+}
+
+
+
+
+#define COLOR_BLUE 3
+// Iterative implementation of DFS with pre and post processing of nodes and arcs user-defined
 // based on two stacks of arcs
+// the main difference with dfs_i() is that we save nodes to visit as soon as we discover them,
+// so we don't have to recheck all arcs when we revisit a node.
+// uses more memory, may be a bit faster in some cases
 template <
 typename PreOrderNode,
 typename PostOrderNode,
@@ -158,7 +254,7 @@ typename PostStackPop,
 typename ColorSet,
 typename ColorGet
 >
-inline void NWS::dfs_i(NodeID s,
+inline void NWS::dfs_i2(NodeID s,
 		const PreOrderNode& preOrderNode,
 		const PostOrderNode& postOrderNode,
 		const PreOrderArc& preOrderArc,
@@ -192,7 +288,7 @@ inline void NWS::dfs_i(NodeID s,
 			}
 		}
 
-		if (colorGet(u) == COLOR_BLACK) { // if u is i leaf go backwards until next branch
+		if (colorGet(u) == COLOR_BLACK) { // if u is a leaf go backwards until next branch
 			if (!postStackIsEmpty()) {
 				pu = u;
 
@@ -205,7 +301,7 @@ inline void NWS::dfs_i(NodeID s,
 				while (pu != pv) {
 					assert(!postStackIsEmpty());
 					assert(pu != s);
-					postOrderNode(pu, colorGet(pu));
+					postOrderNode(pu, colorGet(pu) == COLOR_BLACK);
 					colorSet(pu, COLOR_BLACK);
 					u = postStackPop(pu, i);
 					postOrderArc(pu, i);
@@ -218,11 +314,9 @@ inline void NWS::dfs_i(NodeID s,
 		if (!preStackIsEmpty()) {
 			u = preStackPop(pu, i); // where we go next
 			postStackPush(pu, i); // save where we come from
-		} else {
-			postOrderNode(s, colorGet(s));
-			break;
-		}
+		} else break;
 	} while (true);
+	postOrderNode(s, colorGet(s) == COLOR_BLACK);
 }
 template <
 typename PreOrderNode,
@@ -230,17 +324,17 @@ typename PostOrderNode,
 typename PreOrderArc,
 typename PostOrderArc
 >
-inline void NWS::dfs_i(NodeID s,
+inline void NWS::dfs_i2(NodeID s,
 		const PreOrderNode& preOrderNode,
 		const PostOrderNode& postOrderNode,
 		const PreOrderArc& preOrderArc,
 		const PostOrderArc& postOrderArc,
 		std::vector<int>& color
 ) {
-	// implementation with double ended queue (two stacks)
+	// simple implementation with double ended queue (two stacks)
 	std::deque<ArcID> q;
 	int pre = 0, post = 0;
-	return dfs_i(s,
+	return dfs_i2(s,
 			preOrderNode,
 			postOrderNode,
 			preOrderArc,
@@ -254,25 +348,6 @@ inline void NWS::dfs_i(NodeID s,
 			[&](NodeID u, int c){ color[u] = c; },
 			[&](NodeID u){ return color[u]; }
 	);
-	/*
-	// implementation with two stacks
-	std::stack<std::pair<NodeID, ArcID>> pre;
-	std::stack<std::pair<NodeID, ArcID>> post;
-	return dfs_i(s,
-			preOrderNode,
-			postOrderNode,
-			preOrderArc,
-			postOrderArc,
-			[&](){ return pre.empty(); },
-			[&](NodeID pu, ArcID i){ pre.push(std::pair<NodeID, ArcID>(pu, i)); },
-			[&](NodeID& pu, ArcID& i){ pu = pre.top().first; i = pre.top().second; pre.pop(); return arcs[i].head; },
-			[&](){ return post.empty(); },
-			[&](NodeID pu, ArcID i){ post.push(std::pair<NodeID, ArcID>(pu, i)); },
-			[&](NodeID& pu, ArcID& i){ pu = post.top().first; i = post.top().second; post.pop(); return arcs[i].head; },
-			[&](NodeID u, int c){ color[u] = c; },
-			[&](NodeID u){ return color[u]; }
-	);
-	 */
 }
 
 

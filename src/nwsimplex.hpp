@@ -52,8 +52,7 @@ public:
 	~NWS();
 
 	void solve();
-	void buildInitialBasisFromBFS();
-	void buildInitialBasisFromDFS();
+	void buildInitialBasis();
 	void prepareNextPivot();
 
 	bool makeCur(NodeID v);
@@ -81,6 +80,8 @@ public:
 	ArcID findArc(NodeID u, NodeID v, bool binarySearch = true);
 
 #include "dfsbfs.hpp"
+	void testBFS();
+	void testDFS();
 
 private:
 	void initialize();

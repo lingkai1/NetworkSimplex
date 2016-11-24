@@ -9,7 +9,7 @@ void NWS::solve() {
 
 	flow = 0;
 
-	buildInitialBasisFromBFS();
+	buildInitialBasis();
 
 
 	while (true) {
@@ -27,7 +27,7 @@ void NWS::solve() {
 		if (!pivotExtractMin(vw)) {
 			// no pivot available.
 			// Simplex method ended
-			if (verbose >= 1) cout << "Simplex method ended. No more pivot arcs" << endl;
+			if (verbose >= 1) cout << "No pivots left. Simplex method ended." << endl;
 
 
 			return;
@@ -129,17 +129,16 @@ void NWS::solve() {
 			if (verbose >= 1) cout << "xy in S => T grows" << endl;
 			// reverse parent pointers on the y->v path and make v->w
 			u = v;
+			ArcID pi = vw;
 			while (u != y) {
 				Node& nu = nodes[u];
-				Arc& ar = arcs[nu.parent]; // (u,pu)
-				ArcID i = ar.rev;
-				NodeID pu = ar.head;
-
-				nodes[pu].parent = i;
-
-				u = pu;
+				ArcID r = nu.parent;
+				nu.parent = pi;
+				Arc& ar = arcs[r];
+				pi = ar.rev;
+				u = ar.head;
 			}
-			nodes[v].parent = vw;
+			nodes[u].parent = pi;
 			// update pivots list
 			// subtree(y) moves from S to T
 			forAllSubTree(y, [&](NodeID u){
@@ -169,17 +168,16 @@ void NWS::solve() {
 			if (verbose >= 1) cout << "xy in T => S grows" << endl;
 			// reverse parent pointers on the w->x path and make w->v
 			u = w;
+			ArcID pi = wv;
 			while (u != x) {
 				Node& nu = nodes[u];
-				ArcID i = nu.parent; Arc& ai = arcs[nu.parent]; // (u,pu)
-				NodeID r = ai.rev;
-				NodeID pu = ai.head;
-
-				nodes[pu].parent = r;
-
-				u = pu;
+				ArcID i = nu.parent;
+				nu.parent = pi;
+				Arc& ai = arcs[i];
+				pi = ai.rev;
+				u = ai.head;
 			}
-			nodes[w].parent = avw.rev;
+			nodes[u].parent = pi;
 			// update pivots list
 			// subtree(x) moves from T to S
 			forAllSubTree(x, [&](NodeID u){
@@ -229,7 +227,7 @@ void NWS::printS() {
 	fill(color.begin(), color.end(), COLOR_WHITE);
 	dfs_i(source,
 			[&](NodeID u){},
-			[&](NodeID u, int color){},
+			[&](NodeID u, bool leaf){},
 			[&](NodeID u, ArcID i, int headColor) {
 				// arc choice (pre arc)
 				Arc& ai = arcs[i];
@@ -251,7 +249,7 @@ void NWS::printT() {
 	fill(color.begin(), color.end(), COLOR_WHITE);
 	dfs_i(sink,
 			[&](NodeID v){},
-			[&](NodeID v, int color){},
+			[&](NodeID v, bool leaf){},
 			[&](NodeID v, ArcID r, int headColor) {
 				// arc choice (pre arc)
 				Arc& ar = arcs[r];
@@ -268,7 +266,7 @@ void NWS::printT() {
 			color);
 }
 
-void NWS::buildInitialBasisFromBFS() {
+void NWS::buildInitialBasis() {
 	forAllNodes(u) {
 		Node& nu = nodes[u];
 		nu.d = u != sink ? 0 : 1; // every node starts with d = 0 except sink (d = 1)
@@ -296,7 +294,7 @@ void NWS::buildInitialBasisFromBFS() {
 		Node& nu = nodes[u];
 		nu.tree = IN_S;
 	},
-	[&](NodeID u, int color){ // post node
+	[&](NodeID u, bool leaf){ // post node
 	},
 	[&](NodeID u, ArcID i, int headColor){
 		// process BFS arc
@@ -348,7 +346,7 @@ void NWS::buildInitialBasisFromBFS() {
 		Node& nu = nodes[u];
 		nu.stSize = 1; // initialize subtree size
 	},
-	[&](NodeID u, int color){
+	[&](NodeID u, bool leaf){
 		// post node
 	},
 	[&](NodeID u, ArcID i, int headColor) {
@@ -384,108 +382,7 @@ void NWS::buildInitialBasisFromBFS() {
 
 }
 
-// may be removed, former way of initializing S
-void NWS::buildInitialBasisFromDFS() {
-	forAllNodes(u) {
-		Node& nu = nodes[u];
-		nu.d = u != sink ? 0 : 1; // every node starts with d = 0 except sink (d = 1)
-		nu.cur = nu.first;
-		nu.tree = IN_NONE;
-		nu.bToRelabelNext = nu.bToRelablePrev = UNDEF_NODE;
-	}
-	forAllArcs(u, i, is) {
-		Arc& ai = arcs[i];
-		ai.bPivotNext = ai.bPivotPrev = UNDEF_ARC;
-	}
-	for (NodeID d = 0; d < n; d++) {
-		bToRelabel[d].first = UNDEF_NODE;
-		bToRelabel[d].last = UNDEF_NODE;
-		bPivots[d].first = UNDEF_ARC;
-		bPivots[d].last = UNDEF_ARC;
-	}
 
-	//do DFS to initialize everything
-	NodeID prevu = source;
-	vector<int> color(n); // todo: to optimize (reuse another field maybe)
-	fill(color.begin(), color.end(), COLOR_WHITE);
-	if (verbose >= 1) cout << "Initial DFS" << endl;
-	dfs_i(source,
-			[&](NodeID u){
-		// pre node
-		if (verbose>=2) cout<<"pre node: "<<u<<endl;
-		// link nodes in DFS order as i singly linked list
-		Node& prevnu = nodes[prevu];
-		prevnu.next = u;
-		prevu = u;
-		Node& nu = nodes[u];
-		nu.stSize = 1;
-		nu.tree = IN_S;
-	},
-	[&](NodeID u, int color){
-		// post node
-		if (color == COLOR_BLACK) { // if leaf node
-			//Node& nu = nodes[u]; nu.stSize = 1; // unneeded since all nodes are initialized with stSize = 1
-		}
-		if (verbose>=2) cout<<"post node: "<<u<<" subtree size: "<<nodes[u].stSize<<endl;
-	},
-	[&](NodeID u, ArcID i, int headColor) {
-		// arc choice (pre arc)
-		Arc& ai = arcs[i];
-		if (ai.resCap > 0 && headColor == COLOR_WHITE) { // forward residual tree arc
-			// process forward DFS arc
-			if (ai.head != sink) {
-				if (verbose >= 2) cout << "tree arc: " << u << "->"  << ai.head << " rescap: " << ai.resCap << endl;
-				ai.l = 1; //0;
-				// set parent
-				Node& z = nodes[ai.head];
-				z.parent = ai.rev;
-				return true; // accept this choice as i tree arc
-			}
-			else {
-				// this arc is an initial pivot arc. add it to the priority queue
-				if (verbose >= 2) cout << "pivot arc: " << u << "->"  << ai.head << " rescap: " << ai.resCap << endl;
-				pivotInsert(i);
-				ai.l = INF_DIST;
-				return false; // reject so that we do not search further than sink
-			}
-		}
-		else if (headColor == COLOR_GREY) { // backward tree arc
-			ai.l = 1; //0;
-			return false;
-		}
-		else if (ai.resCap > 0) {
-			// residual non-tree arc
-			ai.l = 1;
-			return false;
-		}
-		else {
-			ai.l = INF_DIST;
-			return false; // reject other types of arcs
-		}
-	},
-	[&](NodeID u, ArcID i) {
-		// post arc
-		Arc& ai = arcs[i];
-		//if (verbose >= 2) cout << "post arc: " << u << "->"  << arc.head << endl;
-		Node& nu = nodes[u];
-		Node& nh = nodes[ai.head];
-		nu.stSize += nh.stSize;
-	},
-	color);
-
-
-	Node& nt = nodes[sink];
-	nt.parent = UNDEF_ARC;
-	nt.next = UNDEF_NODE;
-	nt.stSize = 1;
-	nt.tree = IN_T;
-
-	forAllNodes(v) {
-		if (v != sink)
-			makeCur(v);
-	}
-
-}
 
 // not yet used
 void NWS::prepareNextPivot() {
@@ -610,4 +507,69 @@ bool NWS::pivotExtractMin(ArcID& i) {
 	else
 		return false;
 }
+
+
+
+
+
+void NWS::testBFS() {
+	vector<int> color(n, COLOR_WHITE);
+
+	cout << "BFS" << endl;
+	bfs(source,
+			[&](NodeID u){
+		cout << "pre:  " << u << endl;
+	},
+	[&](NodeID u, bool leaf){
+		cout << "post: " << u << endl;
+	},
+	[&](NodeID u, ArcID i, int headColor){
+		switch (headColor) {
+		case COLOR_WHITE:
+			cout << "forward arc: " << u << "->"  << arcs[i].head << endl;
+			break;
+		case COLOR_GREY:
+			cout << "cross arc: " << u << "->"  << arcs[i].head << endl;
+			break;
+		case COLOR_BLACK:
+			cout << "backward arc: " << u << "->"  << arcs[i].head << endl;
+			break;
+		default:
+			break;
+		}
+		return true;
+	}, color);
+
+}
+
+void NWS::testDFS() {
+	vector<int> color(n, COLOR_WHITE);
+
+	cout << "DFS" << endl;
+	dfs_i(source,
+			[&](NodeID u){
+		cout << "pre:  " << u << endl;
+	},
+	[&](NodeID u, bool leaf){ cout << "post: " << u << endl; },
+	[&](NodeID u, ArcID i, int headColor){
+		switch (headColor) {
+		case COLOR_WHITE:
+			cout << "forward pre arc: " << u << "->"  << arcs[i].head << endl;
+			break;
+		case COLOR_BLACK:
+			cout << "cross pre arc: " << u << "->"  << arcs[i].head << endl;
+			break;
+		case COLOR_GREY:
+			cout << "backward pre arc: " << u << "->"  << arcs[i].head << endl;
+			break;
+		default:
+			break;
+		}
+		return true;
+	},
+	[&](NodeID u, ArcID a){
+		cout << "post arc: " << u << "->"  << arcs[a].head << endl;
+	}, color);
+}
+
 
