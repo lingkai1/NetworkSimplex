@@ -15,7 +15,7 @@ CFLAGS_COMMON = -std=c++0x -Wno-unused-variable
 CFLAGS_DBG = $(CFLAGS_COMMON) -ggdb -Wall -O0
 CFLAGS_OPT = $(CFLAGS_COMMON) -O4
 LFLAGS_DBG = 
-LFLAGS_OPT = 
+LFLAGS_OPT = -s
 
 # targets
 

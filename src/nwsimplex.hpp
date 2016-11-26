@@ -11,10 +11,23 @@
 #include <queue>
 #include <deque>
 #include <set>
+#include <list>
+
+#define USE_STATS_TIME
+#define USE_STATS_COUNT
+
+#ifdef USE_STATS_TIME
+double timer();
+#endif
 
 #define IN_NONE 0
 #define IN_S 1
 #define IN_T 2
+
+#define PIVOTS_QUEUE
+//#define PIVOTS_BUCKETS // todo: implement the pivot list with buckets
+
+
 
 #define forAllNodes(u) for (NodeID u = 0; u <= nMax; u++)
 #define forAllOutArcs(u, i, iStop) if (nodes[u].first != UNDEF_ARC)\
@@ -45,7 +58,18 @@ public:
 	std::vector<BucketPivot> bPivots; // for each level d first pivot arc
 	std::stack<NodeID> toRelabel; // todo remove this and change implementation
 
-	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS);
+
+	// statistics
+	// times
+#ifdef USE_STATS_TIME
+	double t_parse;
+	double t_buildInitialBasis;
+	double t_solve;
+#endif
+	// counters
+
+
+	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
 	//NWS(int n, int m);
 	~NetworkMaxFlowSimplex();
 
@@ -58,24 +82,26 @@ public:
 
 
 
-	// todo: change implementation (use all buckets) now only bucket[d=0] is used as a FIFO queue
+	// todo: change implementation (use all buckets)
+#ifdef PIVOTS_QUEUE
+	std::list<ArcID> pivots;
+#endif
 	void pivotInsert(ArcID i);
 	bool pivotDelete(ArcID i);
 	bool pivotExtractMin(ArcID& i);
 
-	template <typename Op> inline void forAllSubTree(NodeID root, const Op& op) {
-		NodeID u = root;
-		for (NodeID k = 0; k < nodes[root].stSize; k++) {
-			op(u);
-			u = nodes[u].next;
-		}
-	}
+
 
 	void printSubTree(NodeID root);
 	void printS();
 	void printT();
 
 	ArcID findArc(NodeID u, NodeID v, bool binarySearch = true);
+
+#ifdef USE_STATS_TIME
+	void printTimeStats();
+#endif
+
 
 #include "dfsbfs.hpp"
 	void testBFS();
@@ -85,6 +111,14 @@ private:
 	void initialize();
 	void constructorDimacs(std::istream& is);
 	void constructorDimacsFail(int lineNum, int code);
+
+	template <typename Op> inline void forAllSubTree(NodeID root, const Op& op) {
+		NodeID u = root;
+		for (NodeID k = 0; k < nodes[root].stSize; k++) {
+			op(u);
+			u = nodes[u].next;
+		}
+	}
 
 };
 

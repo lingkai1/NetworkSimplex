@@ -51,6 +51,9 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 		ss.str(""); ss.clear(); ss << line; lineNum++;
 		if (ss >> c)
 			switch (c) {
+			case 'c': {
+				// comment
+			} break;
 			case 'n': {
 				NodeID id;
 				if (!(ss >> id)) return constructorDimacsFail(lineNum, 2);

@@ -46,6 +46,8 @@ struct Node {
 	ArcID parent; // arc pointing to the parent of this node
 	NodeID next; // next node in the tree (Linked list in DFS order)
 	NodeID stSize; // size of the subtree rooted at this node
+	// PROBLEM, we need next field for EACH tree (S and T) so we can correctly update pivots
+	// this is an error, todo: fix
 	int tree; // current tree
 
 	// todo: implement later

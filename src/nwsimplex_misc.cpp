@@ -10,9 +10,12 @@ void NetworkMaxFlowSimplex::initialize() {
 }
 
 // constructors
-NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format) {
+NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format, int verbose) {
 	initialize();
-	verbose = 0;
+	this->verbose = verbose;
+#ifdef USE_STATS_TIME
+	t_parse = timer();
+#endif
 	switch (format) {
 	case FORMAT_DIMACS: {
 		constructorDimacs(is);
@@ -20,6 +23,9 @@ NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format) {
 	default:
 		break;
 	}
+#ifdef USE_STATS_TIME
+	t_parse = timer() - t_parse;
+#endif
 }
 
 // destructor
@@ -27,6 +33,15 @@ NetworkMaxFlowSimplex::~NetworkMaxFlowSimplex() {
 	//if (nodes != nullptr) delete[] nodes;
 	//if (arcs != nullptr) delete[] arcs;
 }
+
+#ifdef USE_STATS_TIME
+void NetworkMaxFlowSimplex::printTimeStats() {
+	cout << "Parsing time: " << t_parse << endl;
+	cout << "Build initial basis time: " << t_buildInitialBasis << endl;
+	cout << "Solving time: " << t_solve << endl;
+}
+#endif
+
 
 
 // miscellaneous graph functions
