@@ -120,6 +120,10 @@ private:
 		}
 	}
 
+	void getSubtreeLastNode(NodeID u, NodeID& uLast);
+	void deleteSubtree(NodeID q, NodeID u, NodeID uLast);
+	void addSubtreeAsChild(NodeID r, NodeID p, NodeID pLast, NodeID u);
+	void changeRoot(NodeID q, NodeID r, NodeID& rLast);
 };
 
 #include "dfsbfs.cpp"
