@@ -58,6 +58,9 @@ struct Main {
 #ifdef USE_STATS_TIME
 		nw.printTimeStats();
 #endif
+#ifdef USE_STATS_COUNT
+		nw.printCountStats();
+#endif
 
 		return mainExit(0);
 	}

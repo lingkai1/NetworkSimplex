@@ -131,6 +131,14 @@ void NetworkMaxFlowSimplex::solve() {
 #ifdef USE_STATS_TIME
 	t_solve = timer();
 #endif
+#ifdef USE_STATS_COUNT
+	c_basisIter = 0;
+	c_basisGrowS = 0;
+	c_basisGrowT = 0;
+	c_basisNoChange = 0;
+	c_pivotsInserted = 0;
+	c_pivotsDeleted = 0;
+#endif
 
 	flow = 0;
 
@@ -302,6 +310,9 @@ void NetworkMaxFlowSimplex::solve() {
 					}
 				}
 			});
+#ifdef USE_STATS_COUNT
+			c_basisGrowT++;
+#endif
 		}
 		else if (xyTree == IN_T) {
 			if (verbose >= 1) cout << "xy in T => S grows" << endl;
@@ -338,12 +349,21 @@ void NetworkMaxFlowSimplex::solve() {
 					}
 				}
 			});
+#ifdef USE_STATS_COUNT
+			c_basisGrowS++;
+#endif
 		}
 		else {
 			if (verbose >= 1) cout << "xy == vw => Unchanged basis" << endl;
 			// pivot is the leaving arc. keep the same basis
+#ifdef USE_STATS_COUNT
+			c_basisNoChange++;
+#endif
 		}
 
+#ifdef USE_STATS_COUNT
+		c_basisIter++;
+#endif
 	}
 
 }
@@ -470,6 +490,9 @@ void NetworkMaxFlowSimplex::printT() {
 #ifdef PIVOTS_QUEUE
 void NetworkMaxFlowSimplex::pivotInsert(ArcID i) {
 	pivots.push_back(i);
+#ifdef USE_STATS_COUNT
+	c_pivotsInserted = 0;
+#endif
 }
 bool NetworkMaxFlowSimplex::pivotDelete(ArcID i) {
 	auto it = find(pivots.begin(), pivots.end(), i);
@@ -477,6 +500,9 @@ bool NetworkMaxFlowSimplex::pivotDelete(ArcID i) {
 		return false;
 	else {
 		pivots.erase(it);
+#ifdef USE_STATS_COUNT
+		c_pivotsDeleted++;
+#endif
 		return true;
 	}
 }

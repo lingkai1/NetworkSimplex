@@ -67,6 +67,14 @@ public:
 	double t_solve;
 #endif
 	// counters
+#ifdef USE_STATS_COUNT
+	long long c_basisIter;
+	long long c_basisGrowS;
+	long long c_basisGrowT;
+	long long c_basisNoChange;
+	long long c_pivotsInserted;
+	long long c_pivotsDeleted;
+#endif
 
 
 	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
@@ -96,12 +104,12 @@ public:
 	void printS();
 	void printT();
 
-	ArcID findArc(NodeID u, NodeID v, bool binarySearch = true);
-
 #ifdef USE_STATS_TIME
 	void printTimeStats();
 #endif
-
+#ifdef USE_STATS_COUNT
+	void printCountStats();
+#endif
 
 #include "dfsbfs.hpp"
 	void testBFS();

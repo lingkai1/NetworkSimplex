@@ -36,13 +36,22 @@ NetworkMaxFlowSimplex::~NetworkMaxFlowSimplex() {
 
 #ifdef USE_STATS_TIME
 void NetworkMaxFlowSimplex::printTimeStats() {
-	cout << "Parsing time: " << t_parse << endl;
-	cout << "Build initial basis time: " << t_buildInitialBasis << endl;
-	cout << "Solving time: " << t_solve << endl;
+	cout << "Parsing time: " << t_parse << " s" << endl;
+	cout << "Build initial basis time: " << t_buildInitialBasis << " s" << endl;
+	cout << "Solving time: " << t_solve << " s" << endl;
 }
 #endif
 
-
+#ifdef USE_STATS_COUNT
+void NetworkMaxFlowSimplex::printCountStats() {
+	cout << "Iterations: " << c_basisIter << endl;
+	cout << "S growths: " << c_basisGrowS << endl;
+	cout << "T growths: " << c_basisGrowT << endl;
+	cout << "Basis unchanged: " << c_basisNoChange << endl;
+	cout << "Pivots inserted: " << c_pivotsInserted << endl;
+	cout << "Pivots deleted: " << c_pivotsDeleted << endl;
+}
+#endif
 
 
 
