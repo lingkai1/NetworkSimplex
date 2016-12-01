@@ -157,7 +157,6 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 	arcs.resize(m);
 	arcs.shrink_to_fit();
 
-
 	bToRelabel.resize(n);
 	bPivots.resize(n);
 
@@ -167,7 +166,7 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 	if (verbose >= 2) {
 		forAllArcs(u, i, is) {
 			Arc& arc = arcs[i];
-			cout << "Arc: " << i << " (" << u << ", " << arc.head << ") c: " << arc.resCap << " rev_id: " << arc.rev << endl;
+			cout << "Arc: " << i << " (" << u << ", " << arc.head << ") c: " << arc.resCap << " rev: " << arc.rev << endl;
 		}
 	}
 

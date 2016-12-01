@@ -21,7 +21,6 @@ struct Arc;
 struct Node;
 
 
-
 struct Arc {
 	union { // use anonymous union for alternate names -> different meanings for field reuse for space optimization
 		Cap resCap; // residual capasity
@@ -66,8 +65,5 @@ struct BucketPivot {
 	ArcID first;
 	ArcID last;
 };
-
-
-
 
 #endif

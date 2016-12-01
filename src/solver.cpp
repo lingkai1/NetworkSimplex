@@ -142,9 +142,13 @@ void NetworkMaxFlowSimplex::solve() {
 	t_buildInitialBasis = timer() - t_buildInitialBasis;
 #endif
 
+	double t_refresh=timer();
 	while (true) {
-
-		if (verbose >= 1)  cout << "Flow: " << flow << endl;
+		if (timer() - t_refresh > 1.0) { // print flow every sec
+			cout << "Flow: " << flow << endl;
+			fflush(stdout);
+			t_refresh = timer();
+		}
 
 
 		if (verbose >= 2) {
@@ -298,8 +302,6 @@ void NetworkMaxFlowSimplex::solve() {
 					}
 				}
 			});
-
-
 		}
 		else if (xyTree == IN_T) {
 			if (verbose >= 1) cout << "xy in T => S grows" << endl;
@@ -430,8 +432,6 @@ void NetworkMaxFlowSimplex::changeRoot(NodeID q, NodeID r, NodeID& rLast) {
 	getSubtreeLastNode(r, rLast);
 }
 
-
-
 void NetworkMaxFlowSimplex::printSubTree(NodeID root) {
 	forAllSubTree(root, [&](NodeID u){
 		Node& nu = nodes[u];
@@ -444,52 +444,61 @@ void NetworkMaxFlowSimplex::printSubTree(NodeID root) {
 
 void NetworkMaxFlowSimplex::printS() {
 	cout << "S tree rooted at " << source << endl;
-	vector<int> color(n);
-	fill(color.begin(), color.end(), COLOR_WHITE);
-	dfs_i(source,
-			[&](NodeID u){},
-			[&](NodeID u, bool leaf){},
-			[&](NodeID u, ArcID i, int headColor) {
-				// arc choice (pre arc)
-				Arc& ai = arcs[i];
-				ArcID r = ai.rev;
-				NodeID v = ai.head; Node& nv = nodes[v];
-				if (headColor == COLOR_WHITE && v != sink && nv.parent == r) {
-					cout << v << "->" << u << " rc: " << ai.resCap << endl;
-					assert(nodes[u].tree == IN_S);
-					assert(nodes[v].tree == IN_S);
-					return true;
-				}
-				else
-					return false;
-			},
-			[&](NodeID u, ArcID i){},
-			color);
+	forAllSubTree(source, [&](NodeID u){
+		ArcID r = nodes[u].parent;
+		if (r != UNDEF_ARC) {
+			Arc& ar = arcs[r]; ArcID i = arcs[r].rev; Arc& ai = arcs[i];
+			NodeID p = ar.head;
+			cout << u << "->" << p << " rc: " << ai.resCap << endl;
+		}
+	});
 }
 void NetworkMaxFlowSimplex::printT() {
 	cout << "T tree rooted at " << sink << endl;
-	vector<int> color(n);
-	fill(color.begin(), color.end(), COLOR_WHITE);
-	dfs_i(sink,
-			[&](NodeID v){},
-			[&](NodeID v, bool leaf){},
-			[&](NodeID v, ArcID r, int headColor) {
-				// arc choice (pre arc)
-				Arc& ar = arcs[r];
-				ArcID i = ar.rev; Arc& ai = arcs[i];
-				NodeID u = ar.head; Node& nu = nodes[u];
-				if (headColor == COLOR_WHITE && u != source && nu.parent == i) {
-					cout << u << "->" << v << " rc: " << ai.resCap << endl;
-					assert(nodes[u].tree == IN_T);
-					assert(nodes[v].tree == IN_T);
-					return true;
-				}
-				else
-					return false;
-			},
-			[&](NodeID v, ArcID i){},
-			color);
+	forAllSubTree(sink, [&](NodeID u){
+		ArcID r = nodes[u].parent;
+		if (r != UNDEF_ARC) {
+			Arc& ar = arcs[r]; ArcID i = arcs[r].rev; Arc& ai = arcs[i];
+			NodeID p = ar.head;
+			cout << u << "->" << p << " rc: " << ai.resCap << endl;
+		}
+	});
 }
+
+
+// todo: change implementation to use buckets
+#ifdef PIVOTS_QUEUE
+void NetworkMaxFlowSimplex::pivotInsert(ArcID i) {
+	pivots.push_back(i);
+}
+bool NetworkMaxFlowSimplex::pivotDelete(ArcID i) {
+	auto it = find(pivots.begin(), pivots.end(), i);
+	if (it == pivots.end())
+		return false;
+	else {
+		pivots.erase(it);
+		return true;
+	}
+}
+bool NetworkMaxFlowSimplex::pivotExtractMin(ArcID& i) {
+	if (pivots.empty())
+		return false;
+	else {
+		//i = pivots.front();
+		//pivots.pop_front();
+		auto it = pivots.begin();
+		advance(it, rand()%(int)pivots.size());
+		i = *it;
+		pivots.erase(it);
+		return true;
+	}
+}
+#else
+#endif
+
+
+
+
 
 
 // not yet used
@@ -559,30 +568,6 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	}
 }
 
-#ifdef PIVOTS_QUEUE
-void NetworkMaxFlowSimplex::pivotInsert(ArcID i) {
-	pivots.push_back(i);
-}
-bool NetworkMaxFlowSimplex::pivotDelete(ArcID i) {
-	auto it = find(pivots.begin(), pivots.end(), i);
-	if (it == pivots.end())
-		return false;
-	else {
-		pivots.erase(it);
-		return true;
-	}
-}
-bool NetworkMaxFlowSimplex::pivotExtractMin(ArcID& i) {
-	if (pivots.empty())
-		return false;
-	else {
-		i = pivots.front();
-		pivots.pop_front();
-		return true;
-	}
-}
-#else
-#endif
 
 
 
