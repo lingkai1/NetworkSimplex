@@ -491,7 +491,7 @@ void NetworkMaxFlowSimplex::printT() {
 void NetworkMaxFlowSimplex::pivotInsert(ArcID i) {
 	pivots.push_back(i);
 #ifdef USE_STATS_COUNT
-	c_pivotsInserted = 0;
+	c_pivotsInserted++;
 #endif
 }
 bool NetworkMaxFlowSimplex::pivotDelete(ArcID i) {
