@@ -13,7 +13,6 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 	}
 	forAllArcs(u, i, is) {
 		Arc& ai = arcs[i];
-		ai.bPivotNext = ai.bPivotPrev = UNDEF_ARC;
 	}
 	for (NodeID d = 0; d < n; d++) {
 		bToRelabel[d].first = UNDEF_NODE;
@@ -39,7 +38,6 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 		if (ai.resCap > 0 && headColor == COLOR_WHITE) { // forward residual tree arc
 			if (ai.head != sink) {
 				if (verbose >= 3) cout << "tree arc: " << u << "->"  << ai.head << " rescap: " << ai.resCap << endl;
-				ai.l = 1; //0;
 				// set parent
 				Node& z = nodes[ai.head];
 				z.parent = ai.rev;
@@ -49,21 +47,16 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 				// this arc is an initial pivot arc. add it to the priority queue
 				if (verbose >= 3) cout << "pivot arc: " << u << "->"  << ai.head << " rescap: " << ai.resCap << endl;
 				pivotInsert(i);
-				ai.l = INF_DIST;
 				return false; // reject so that we do not search further than sink
 			}
 		}
 		else if (headColor == COLOR_BLACK) { // backward tree arc
-			ai.l = 1; //0;
 			return false;
 		}
-		else if (ai.resCap > 0) {
-			// residual non-tree arc
-			ai.l = 1;
+		else if (ai.resCap > 0) { // residual non-tree arc
 			return false;
 		}
 		else {
-			ai.l = INF_DIST;
 			return false; // reject other types of arcs
 		}
 	},
@@ -159,7 +152,7 @@ void NetworkMaxFlowSimplex::solve() {
 		}
 
 
-		if (verbose >= 2) {
+		if (verbose >= 3) {
 			cout<<"TREE S: "; printSubTree(source); cout<<endl;
 			cout<<"TREE T: "; printSubTree(sink); cout<<endl;
 			printS();
@@ -554,9 +547,11 @@ bool NetworkMaxFlowSimplex::makeCur(NodeID v) {
 	if (nv.first >= nodes[v+1].first) // no arc incident arc to v
 		return true;
 	while (nv.cur < nodes[v+1].first) {
-		Arc& ai = arcs[nv.cur];
-		Node& nu = nodes[ai.head];
-		if (nv.d == nu.d + arcs[ai.rev].l) {
+		ArcID vu = nv.cur; Arc& avu = arcs[vu];
+		Node& nu = nodes[avu.head];
+		ArcID uv = avu.rev; Arc& auv = arcs[uv];
+		Dist l = (auv.resCap > 0 || nu.parent == uv || nv.parent == vu) ? 1 : INF_DIST;
+		if (nv.d == nu.d + l) {
 			return true;
 		}
 		nv.cur++;
@@ -572,23 +567,25 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	assert(nv.first < nodes[v+1].first); // there is at least one incident arc to v
 	Dist oldD = nv.d;
 	nv.d = INF_DIST;
-	forAllOutArcs(v, i, is) {
-		Arc& ai = arcs[i];
-		NodeID u = ai.head; Node& nu = nodes[u];
-		ArcID r = ai.rev; Arc& ar = arcs[r];
-		Dist newDist = nu.d + ar.l;
+	forAllOutArcs(v, vu, is) {
+		Arc& avu = arcs[vu];
+		NodeID u = avu.head; Node& nu = nodes[u];
+		ArcID uv = avu.rev; Arc& auv = arcs[uv];
+		Dist l = (auv.resCap > 0 || nu.parent == uv || nv.parent == vu) ? 1 : INF_DIST;
+		Dist newDist = nu.d + l;
 		if (newDist < nv.d) {
 			nv.d = newDist;
-			nv.cur = i;
+			nv.cur = vu;
 		}
 	}
 	assert(nv.d > oldD);
 	//After relabel(v) increases d(v), we check all arcs (v,u). If u was current before the relabeling and cur(u) = (v,u), we make u non-current.
 	//During this processing, if relabel(v) makes u non-current, we apply make_cur(u) and if it fails, we add u to the relabel list.
-	forAllOutArcs(v, i, is) {
-		Arc& ai = arcs[i];
-		NodeID u = ai.head; Node& nu = nodes[u];
-		if (nu.cur == ai.rev) {
+	forAllOutArcs(v, vu, is) {
+		Arc& avu = arcs[vu];
+		NodeID u = avu.head; Node& nu = nodes[u];
+		ArcID uv = avu.rev;
+		if (nu.cur == uv) {
 			makeCur(u);
 		}
 	}

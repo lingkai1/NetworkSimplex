@@ -29,11 +29,7 @@ struct Arc {
 	NodeID head; // arc head
 	ArcID rev; // reverse arc
 
-	Dist l; // l(tail,head)
-
 	// todo: implement later
-	ArcID bPivotNext;
-	ArcID bPivotPrev;
 };
 
 struct Node {
@@ -48,7 +44,7 @@ struct Node {
 	NodeID prev; // prev node in the tree
 	NodeID stSize; // size of the subtree rooted at this node
 
-	int tree; // current tree
+	int tree; // current tree (simplex multiplier)
 
 	// todo: implement later
 	NodeID bToRelabelNext;
@@ -62,8 +58,8 @@ struct BucketToRelabel {
 };
 
 struct BucketPivot {
-	ArcID first;
-	ArcID last;
+	NodeID first;
+	NodeID last;
 };
 
 #endif
