@@ -157,9 +157,6 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 	arcs.resize(m);
 	arcs.shrink_to_fit();
 
-	bToRelabel.resize(n);
-	bPivots.resize(n);
-
 
 	if (verbose >= 1) cout << "n: " << n << " m: " << m << endl;
 

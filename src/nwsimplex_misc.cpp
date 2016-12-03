@@ -50,6 +50,8 @@ void NetworkMaxFlowSimplex::printCountStats() {
 	cout << "Basis unchanged: " << c_basisNoChange << endl;
 	cout << "Pivots inserted: " << c_pivotsInserted << endl;
 	cout << "Pivots deleted: " << c_pivotsDeleted << endl;
+	cout << "Make current calls: " << c_makeCur << endl;
+	cout << "Relabel calls: " << c_relabel << endl;
 }
 #endif
 

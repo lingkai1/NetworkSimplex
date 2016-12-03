@@ -29,7 +29,7 @@ struct Arc {
 	NodeID head; // arc head
 	ArcID rev; // reverse arc
 
-	// todo: implement later
+
 };
 
 struct Node {
@@ -46,20 +46,21 @@ struct Node {
 
 	int tree; // current tree (simplex multiplier)
 
-	// todo: implement later
-	NodeID bToRelabelNext;
-	NodeID bToRelablePrev;
+
+	// doubly linked to allow deletion inside
+	NodeID bToRelabelNext, bToRelabelPrev;
+
+	NodeID bPivotsNext, bPivotsPrev;
 
 };
 
+// push on one side pop on the other for FIFO order
 struct BucketToRelabel {
-	NodeID first;
-	NodeID last;
+	NodeID first, last;
 };
 
 struct BucketPivot {
-	NodeID first;
-	NodeID last;
+	NodeID first, last;
 };
 
 #endif
