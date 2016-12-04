@@ -62,56 +62,20 @@ public:
 	//NWS(int n, int m);
 	~NetworkMaxFlowSimplex();
 
-	void buildInitialBasis();
 	void solve();
 
-	// todo: change implementation (use all buckets)
-#if defined(PLAIN_SIMPLEX)
-	std::list<ArcID> pivots;
-	void pivotsInsert(ArcID i);
-	ArcID pivotsExtractMin();
-	bool pivotsDelete(ArcID i);
-#elif defined(LAZY_SIMPLEX)
-	bool pivotsContains(NodeID v);
-	void pivotsInsert(NodeID v, Dist d);
-	ArcID pivotsExtractMin();
-	NodeID pivotsDelete(NodeID v);
-#endif
-
-#if defined(LAZY_SIMPLEX)
-	bool toRelabelContains(NodeID v);
-	void toRelabelInsert(NodeID v, Dist d);
-	NodeID toRelabelDelete(NodeID v);
-	NodeID toRelabelExtractMin();
-	bool toRelabelEmpty();
-#endif
-
-#if defined(LAZY_SIMPLEX)
-	bool makeCur(NodeID v);
-	void relabel(NodeID v);
-#endif
+	void buildInitialBasis();
 
 	template <typename PrintNode> void printSubTree(NodeID root, const PrintNode& print);
 	void printSubTree(NodeID root);
-
 	void printS();
 	void printT();
-
 #ifdef USE_STATS_TIME
 	void printTimeStats();
 #endif
 #ifdef USE_STATS_COUNT
 	void printCountStats();
 #endif
-
-#include "dfsbfs.hpp"
-	void testBFS();
-	void testDFS();
-
-private:
-	void initialize();
-	void constructorDimacs(std::istream& is);
-	void constructorDimacsFail(int lineNum, int code);
 
 	template <typename Op> inline void forAllSubTree(NodeID root, const Op& op) {
 		NodeID u = root;
@@ -151,13 +115,53 @@ private:
 		}
 	}
 
+	bool hasOutPivots(NodeID v);
+	bool hasInPivots(NodeID v);
+
+private:
+	void initialize();
+	void constructorDimacs(std::istream& is);
+	void constructorDimacsFail(int lineNum, int code);
+
+	// todo: change implementation (use all buckets)
+#if defined(PLAIN_SIMPLEX)
+	std::list<ArcID> pivots;
+	void pivotsInsert(ArcID i);
+	ArcID pivotsExtractMin();
+	bool pivotsDelete(ArcID i);
+#elif defined(LAZY_SIMPLEX)
+	bool pivotsContains(NodeID v);
+	void pivotsInsert(NodeID v, Dist d);
+	ArcID pivotsExtractMin();
+	NodeID pivotsDelete(NodeID v);
+#endif
+
+	NodeID globalRelabelWork;
+	double globalRelabelFreq;
+	NodeID globalRelabelThreshold;
+
+#if defined(LAZY_SIMPLEX)
+	bool toRelabelContains(NodeID v);
+	void toRelabelInsert(NodeID v, Dist d);
+	NodeID toRelabelDelete(NodeID v);
+	NodeID toRelabelExtractMin();
+	bool toRelabelEmpty();
+#endif
+
+#if defined(LAZY_SIMPLEX)
+	bool makeCur(NodeID v);
+	void relabel(NodeID v);
+	void doGlobalRelabel();
+#endif
+
+#include "dfsbfs.hpp"
+	void testBFS();
+	void testDFS();
+
 	void getSubtreeLastNode(NodeID u, NodeID& uLast);
 	void deleteSubtree(NodeID q, NodeID u, NodeID uLast);
 	void addSubtreeAsChild(NodeID r, NodeID p, NodeID pLast, NodeID u);
 	void changeRoot(NodeID q, NodeID r, NodeID& rLast);
-
-	bool hasOutPivots(NodeID v);
-	bool hasInPivots(NodeID v);
 
 	// statistics
 	// times

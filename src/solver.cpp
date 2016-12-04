@@ -148,9 +148,11 @@ void NetworkMaxFlowSimplex::solve() {
 
 
 #if defined(LAZY_SIMPLEX)
+	globalRelabelFreq = 1.0;
+	globalRelabelThreshold = n;
 	// make all vertices current and labeled correctly initially
-	forAllNodes(v)
-		makeCur(v);
+	forAllNodes(v) makeCur(v);
+	globalRelabelWork = 0;
 	while (!toRelabelEmpty())
 		relabel(toRelabelExtractMin());
 	// search initial pivots
@@ -165,7 +167,9 @@ void NetworkMaxFlowSimplex::solve() {
 
 	double t_refresh=timer();
 	while (true) {
-		if (timer() - t_refresh > -1.0) { // print flow every sec
+		if (timer() - t_refresh > 1.0) { // print flow every sec
+			cout << "makecurs: " << c_makeCur << endl;
+			cout << "relabels: " << c_relabel << endl;
 			cout << "Flow: " << flow << endl;
 			fflush(stdout);
 			t_refresh = timer();
@@ -342,8 +346,8 @@ void NetworkMaxFlowSimplex::solve() {
 
 			//todo: think more carefully about this
 			forAllNodes(v)
-				makeCur(v);
-
+			makeCur(v);
+			globalRelabelWork = 0;
 			while (!toRelabelEmpty())
 				relabel(toRelabelExtractMin());
 #endif
@@ -412,8 +416,8 @@ void NetworkMaxFlowSimplex::solve() {
 
 			//todo: think more carefully about this
 			forAllNodes(v)
-				makeCur(v);
-
+			makeCur(v);
+			globalRelabelWork = 0;
 			while (!toRelabelEmpty())
 				relabel(toRelabelExtractMin());
 #endif
@@ -431,8 +435,8 @@ void NetworkMaxFlowSimplex::solve() {
 
 			//todo: think more carefully about this
 			forAllNodes(v)
-				makeCur(v);
-
+			makeCur(v);
+			globalRelabelWork = 0;
 			while (!toRelabelEmpty())
 				relabel(toRelabelExtractMin());
 #endif
@@ -728,7 +732,7 @@ NodeID NetworkMaxFlowSimplex::toRelabelDelete(NodeID v) {
 		ll.last = nv.bToRelabelPrev;
 	nv.bToRelabelNext = nv.bToRelabelPrev = UNDEF_NODE;
 #ifdef USE_STATS_COUNT
-		c_pivotsDeleted++;
+	c_pivotsDeleted++;
 #endif
 	return v;
 }
@@ -773,11 +777,19 @@ bool NetworkMaxFlowSimplex::makeCur(NodeID v) {
 		nv.cur++;
 	}
 	// add v to to_relabel list
-	toRelabelInsert(v, nv.d);
+	if (nv.d < n)
+		toRelabelInsert(v, nv.d);
 	return false;
 }
 
 void NetworkMaxFlowSimplex::relabel(NodeID v) {
+	globalRelabelWork++;
+	if (globalRelabelWork * globalRelabelFreq > globalRelabelThreshold) {
+		doGlobalRelabel();
+		globalRelabelWork = 0;
+		assert(toRelabelEmpty());
+		return;
+	}
 #ifdef USE_STATS_COUNT
 	c_relabel++;
 #endif
@@ -796,8 +808,11 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 			nv.cur = vu;
 		}
 	}
+	if (newD <= nv.d) cout<<"v:"<<v<<",newD:"<<newD<<", nv.d:"<<nv.d<<endl;
 	assert(newD > nv.d);
+
 	if (newD >= n) {
+		nv.d = newD;
 		if (verbose >= 3) cout<<"d("<<v<<") >= n so delete it"<<endl;
 		return;
 	}
@@ -822,6 +837,57 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	}
 
 }
+
+void NetworkMaxFlowSimplex::doGlobalRelabel() {
+	static int k = 0; k++;
+	cerr << "GlobalRelabeling: "<<k<<endl;
+
+	// empty toRelabel list
+	forAllNodes(u) {
+		if (toRelabelContains(u))
+			toRelabelDelete(u);
+	}
+
+	// do BFS from source to compute exact labels
+	nodes[source].d = 0;
+	vector<int> color(n);
+	fill(color.begin(), color.end(), COLOR_WHITE);
+	bfs(source,
+			[&](NodeID u){ // pre node
+	},
+	[&](NodeID u, bool leaf){ // post node
+	},
+	[&](NodeID u, ArcID uv, int headColor){ // process arc
+		Node& nu = nodes[u];
+		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
+		NodeID v = auv.head; Node& nv = nodes[v];
+		if (headColor == COLOR_WHITE) {
+			if (auv.resCap > 0 || nu.parent == uv || nv.parent == vu) {
+				nv.d = nu.d + 1;
+				nv.cur = vu;
+				return auv.head != sink; // do not search further than sink
+			}
+			else {
+				nv.d = n;
+				nv.cur = nodes[v+1].first;
+				return false;
+			}
+		}
+		else if (auv.resCap > 0 || nu.parent == uv || nv.parent == vu) { // length 1 cross arc who may result in lower index for v's current arc
+			if (nv.d == nu.d + 1 && nv.cur > vu) {
+				nv.cur = vu; // update current pointer so that after BFS, arcs of v with lower indices cannot satisfy d(u)+l(u,v)=d(v)
+			}
+			return false;
+		}
+		else
+			return false;
+	},
+	color);
+
+	cerr<<"done"<<endl;
+}
+
+
 #endif
 
 
