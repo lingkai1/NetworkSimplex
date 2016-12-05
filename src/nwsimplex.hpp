@@ -25,7 +25,7 @@ double timer();
 
 #define GGT_RELABEL // Use GGT algorithm (relabeling)
 #define LAZY_RELABEL // use lazy relabeling heuristic
-#define GAP_RELABEL // use gap relabeling heuristic
+//#define GAP_RELABEL // use gap relabeling heuristic
 //#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
 
 #define forAllNodes(u) for (NodeID u = 0; u <= nMax; u++)
