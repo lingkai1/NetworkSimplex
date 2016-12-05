@@ -13,7 +13,7 @@ MKDIR = mkdir
 # default parameters
 CFLAGS_COMMON = -std=c++0x -Wno-unused-variable
 CFLAGS_DBG = $(CFLAGS_COMMON) -ggdb -Wall -O0
-CFLAGS_OPT = $(CFLAGS_COMMON) -O4
+CFLAGS_OPT = $(CFLAGS_COMMON) -O4 -DNDEBUG
 LFLAGS_DBG = 
 LFLAGS_OPT = -s
 
@@ -30,12 +30,12 @@ NWS_OBJ += $(NWS_ODIR)/timer.o
 NWS_OBJ += $(NWS_ODIR)/nwsimplex_misc.o
 NWS_OBJ += $(NWS_ODIR)/dimacs.o
 NWS_OBJ += $(NWS_ODIR)/solver.o
-NWS_CFLAGS = $(CFLAGS_DBG)
+NWS_CFLAGS = $(CFLAGS_OPT)
 NWS_BIN = $(BDIR)/nwsimplex
 NWS_BIN_OBJ = $(NWS_OBJ)
 NWS_LDIRS = 
 NWS_LIBS = 
-NWS_LFLAGS = $(LFLAGS_DBG)
+NWS_LFLAGS = $(LFLAGS_OPT)
 # rules
 $(NWS_ODIR): 
 	$(MKDIR) -p $(NWS_ODIR)

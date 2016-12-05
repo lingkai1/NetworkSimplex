@@ -1,7 +1,6 @@
 #ifndef MISC_HPP_
 #define MISC_HPP_
 
-//#define NDEBUG
 #include <assert.h>
 
 #include <iostream>

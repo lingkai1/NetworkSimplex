@@ -2,7 +2,11 @@
 
 using namespace std;
 
-
+// initialize the algorithm
+// build S = V - {t} and T={t} in a bfs
+// do dfs to construct an initial dfs order of nodes
+// do a global relabeling to initialize d labels. (this could be optimized and done in the first bfs)
+// search for initial pivots
 void NetworkMaxFlowSimplex::buildInitialBasis() {
 	bToRelabel.resize(n+1);
 	bPivots.resize(n+1);
@@ -22,6 +26,8 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 		bToRelabel[d].first = bToRelabel[d].last = UNDEF_NODE;
 		bPivots[d].first = bPivots[d].last = UNDEF_NODE;
 	}
+	bPivotsMinD = 0;
+	bToRelabelMinD = 0;
 
 	vector<int> color(n); // todo: to optimize (reuse another field maybe)
 	fill(color.begin(), color.end(), COLOR_WHITE);
@@ -113,8 +119,24 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 	nt.stSize = 1;
 	nt.tree = IN_T;
 
-	Node& ns = nodes[source];
-	ns.parent = UNDEF_ARC;
+	nodes[source].parent = UNDEF_ARC;
+
+
+#if defined(GGT_RELABEL)
+	globalRelabelFreq = 0.2;
+	globalRelabelThreshold = n;
+	globalRelabelWork = 0;
+	doGlobalRelabel();
+#endif
+
+	// search initial pivots
+	forAllSubTree(source, [&](NodeID u){
+		Node& nu = nodes[u];
+		if (hasOutPivots(u)) {
+			assert(!pivotsContains(u));
+			pivotsInsert(u, nu.d);
+		}
+	});
 
 }
 
@@ -147,32 +169,14 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 
 
-#if defined(GGH_SIMPLEX)
-	globalRelabelFreq = 0.2;
-	globalRelabelThreshold = n;
-	globalRelabelWork = 0;
-	doGlobalRelabel();
-#endif
-
-	// search initial pivots
-	forAllSubTree(source, [&](NodeID u){
-		Node& nu = nodes[u];
-		if (hasOutPivots(u)) {
-			assert(!pivotsContains(u));
-			pivotsInsert(u, nu.d);
-		}
-	});
-
-	double t_refresh=timer();
+	// main loop
 	while (true) {
-		assert(nodes[source].parent == UNDEF_ARC);
-		assert(nodes[sink].parent == UNDEF_ARC);
-		if (timer() - t_refresh > 1.0) { // print flow every sec
-			cout << "makecurs: " << c_makeCur << endl;
-			cout << "relabels: " << c_relabel << endl;
+		// print some debug info every sec
+		static double t_loopInfo = timer(); if (timer() - t_loopInfo > 1.0) {
+			cout << "makeCur(): " << c_makeCur << endl;
+			cout << "relabel(): " << c_relabel << endl;
 			cout << "Flow: " << flow << endl;
-			fflush(stdout);
-			t_refresh = timer();
+			fflush(stdout); t_loopInfo = timer();
 		}
 
 
@@ -184,7 +188,7 @@ void NetworkMaxFlowSimplex::solve() {
 		if (verbose >= 1) cout << "Selecting Pivot..." << endl;
 		NodeID v, w;
 		ArcID vw, wv;
-		vw = pivotsExtractMin();
+		vw = pivotsExtractMin(); // extract a pivot with min label
 		if (vw == UNDEF_ARC) {
 			// no pivot available.
 			// Simplex method ended
@@ -302,7 +306,7 @@ void NetworkMaxFlowSimplex::solve() {
 			nodes[v].parent = vw;
 			addSubtreeAsChild(sink, v, nLast, w); // connect R to T
 
-
+			// move subtree from S to T
 			forAllSubTree(v, [&](NodeID u){
 				Node& nu = nodes[u];
 				nu.tree = IN_T;
@@ -324,8 +328,8 @@ void NetworkMaxFlowSimplex::solve() {
 				}
 			});
 
-#if defined(GGH_SIMPLEX)
-			makeCur(y);
+#if defined(GGT_RELABEL)
+			makeCur(y); // only y can be made non current (if its current arc was xy (yx))
 			//forAllNodes(v) makeCur(v);
 			//globalRelabelWork = 0;
 			while (!toRelabelEmpty())
@@ -355,24 +359,27 @@ void NetworkMaxFlowSimplex::solve() {
 			forAllSubTree(w, [&](NodeID u){
 				Node& nu = nodes[u];
 
-				/*nu.tree = IN_T;
+#if defined(FORCE_STRICT_PIVOTS)
+				// if we strictly force the pivot list to contain vertices with at least 1 pivot.
+				// we need to check neighbors, but slower
 				forAllOutArcs(u, uv, is) {
 					Node& nu = nodes[u]; Arc& auv = arcs[uv];
 					ArcID vu = auv.rev; Arc& avu = arcs[vu];
 					NodeID v = auv.head; Node& nv = nodes[v];
-					nu.tree = IN_S;
 					if (pivotsContains(v))
 						if (!hasOutPivots(v))
 							pivotsDelete(v);
 				}
-				nu.tree = IN_S;*/
+#else
+				// else we don't check. neighbors might not have pivots anymore
+#endif
 
 				if (hasOutPivots(u))
 					pivotsInsert(u, nu.d);
 			});
 
-#if defined(GGH_SIMPLEX)
-			makeCur(y);
+#if defined(GGT_RELABEL)
+			makeCur(y); // only y can be made non current (if its current arc was xy (yx))
 			//forAllNodes(v) makeCur(v);
 			//globalRelabelWork = 0;
 			while (!toRelabelEmpty())
@@ -388,9 +395,8 @@ void NetworkMaxFlowSimplex::solve() {
 			if (!hasOutPivots(v))
 				pivotsDelete(v);
 
-#if defined(GGH_SIMPLEX)
+#if defined(GGT_RELABEL)
 			makeCur(y);
-			//forAllNodes(v) makeCur(v);
 			//globalRelabelWork = 0;
 			while (!toRelabelEmpty())
 				relabel(toRelabelExtractMin());
@@ -408,6 +414,8 @@ void NetworkMaxFlowSimplex::solve() {
 
 }
 
+// returns true if u has outgoing pivots
+// u is assumed to be in S (it doesn't have to be)
 bool NetworkMaxFlowSimplex::hasOutPivots(NodeID u) {
 	Node& nu = nodes[u];
 	forAllOutArcs(u, uv, is) {
@@ -418,6 +426,8 @@ bool NetworkMaxFlowSimplex::hasOutPivots(NodeID u) {
 	}
 	return false;
 }
+// returns true if u has incoming pivots
+// u is assumed to be in T (it doesn't have to be)
 bool NetworkMaxFlowSimplex::hasInPivots(NodeID u) {
 	Node& nu = nodes[u];
 	forAllOutArcs(u, uv, is) {
@@ -429,6 +439,7 @@ bool NetworkMaxFlowSimplex::hasInPivots(NodeID u) {
 	return false;
 }
 
+// go to the last node of a subtree in DFS order
 void NetworkMaxFlowSimplex::getSubtreeLastNode(NodeID u, NodeID& uLast) {
 	uLast = u;
 	for (NodeID k = 0; k < nodes[u].stSize - 1; k++) {
@@ -514,6 +525,7 @@ void NetworkMaxFlowSimplex::changeRoot(NodeID q, NodeID r, NodeID& rLast) {
 	getSubtreeLastNode(r, rLast);
 }
 
+// print a subtree with a custom printNode function
 template <typename PrintNode>
 void NetworkMaxFlowSimplex::printSubTree(NodeID root, const PrintNode& print) {
 	forAllSubTree(root, [&](NodeID u){
@@ -561,13 +573,19 @@ void NetworkMaxFlowSimplex::printT() {
 }
 
 
-// todo: at first put all vertices in the bucket, then be smarter
+// returns true if the pivots list contains v
 bool NetworkMaxFlowSimplex::pivotsContains(NodeID v) {
 	Node& nv = nodes[v];
 	return !(nv.bPivotsPrev == UNDEF_NODE && nv.bPivotsNext == UNDEF_NODE && bPivots[nv.d].first != v);
 }
+// inserts v into the pivots list at level d
 void NetworkMaxFlowSimplex::pivotsInsert(NodeID v, Dist d) {
 	assert(!pivotsContains(v));
+#ifdef USE_STATS_COUNT
+	c_pivotsInserted++;
+#endif
+	if (d < bPivotsMinD)
+		bPivotsMinD = d;
 	//cout<<"PIVOT INSERT "<<v<<" at d="<<d<<endl;
 	Node& nv = nodes[v];
 	assert(nv.tree == IN_S);
@@ -582,11 +600,12 @@ void NetworkMaxFlowSimplex::pivotsInsert(NodeID v, Dist d) {
 		nv.bPivotsNext = nv.bPivotsPrev = UNDEF_NODE;
 		ll.first = ll.last = v;
 	}
-#ifdef USE_STATS_COUNT
-	c_pivotsInserted++;
-#endif
 }
+// delete v from the pivots list
 NodeID NetworkMaxFlowSimplex::pivotsDelete(NodeID v) {
+#ifdef USE_STATS_COUNT
+	c_pivotsDeleted++;
+#endif
 	Node& nv = nodes[v]; Dist d = nv.d;
 	//cout<<"PIVOT DELETE "<<v<<" at d="<<d<<endl;
 	BucketPivot& ll = bPivots[d];
@@ -599,15 +618,12 @@ NodeID NetworkMaxFlowSimplex::pivotsDelete(NodeID v) {
 	else
 		ll.last = nv.bPivotsPrev;
 	nv.bPivotsNext = nv.bPivotsPrev = UNDEF_NODE;
-#ifdef USE_STATS_COUNT
-	c_pivotsDeleted++;
-#endif
 	return v;
 }
-// todo: add pointer to the first non empty bucket level
+// returns a v from the pivots list with minimal d and deletes it from the list
 ArcID NetworkMaxFlowSimplex::pivotsExtractMin() {
-	for (Dist d = 0; d <= n; d++) {
-		BucketPivot& ll = bPivots[d];
+	for (; bPivotsMinD <= n; bPivotsMinD++) {
+		BucketPivot& ll = bPivots[bPivotsMinD];
 		while (ll.first != UNDEF_NODE) {
 			NodeID v = ll.first; Node& nv = nodes[v];
 			assert(nv.tree == IN_S);
@@ -620,10 +636,12 @@ ArcID NetworkMaxFlowSimplex::pivotsExtractMin() {
 					return vu;
 			}
 			// could not find at least one pivot arc for this pivot vertex
-			//assert(false); // there can be such vertices
-			if (pivotsDelete(ll.first) == ll.first) {
-				assert(false);
-			}
+#if defined(FORCE_STRICT_PIVOTS)
+			assert(false); // cannot happen
+#else
+			if (pivotsDelete(ll.first) == ll.first)
+				assert(false); // problem with ll.first's label
+#endif
 		}
 	}
 	// no pivots found
@@ -631,12 +649,18 @@ ArcID NetworkMaxFlowSimplex::pivotsExtractMin() {
 }
 
 
-#if defined(GGH_SIMPLEX)
+#if defined(GGT_RELABEL)
+// returns true if the toRelabel list contains v
 bool NetworkMaxFlowSimplex::toRelabelContains(NodeID v) {
 	Node& nv = nodes[v];
 	return !(nv.bToRelabelPrev == UNDEF_NODE && nv.bToRelabelNext == UNDEF_NODE && bToRelabel[nv.d].first != v);
 }
+// inserts v in the toRelabel list at level d
 void NetworkMaxFlowSimplex::toRelabelInsert(NodeID v, Dist d) {
+	//cout<<"TORLB INSERT "<<v<<" at d="<<d<<endl;
+	assert(!toRelabelContains(v));
+	if (d < bToRelabelMinD)
+		bToRelabelMinD = d;
 	Node& nv = nodes[v];
 	BucketToRelabel& ll = bToRelabel[d];
 	if (ll.last != UNDEF_NODE) {
@@ -650,8 +674,10 @@ void NetworkMaxFlowSimplex::toRelabelInsert(NodeID v, Dist d) {
 		ll.first = ll.last = v;
 	}
 }
+// deletes v from the toRelabel list
 NodeID NetworkMaxFlowSimplex::toRelabelDelete(NodeID v) {
 	Node& nv = nodes[v]; Dist d = nv.d;
+	//cout<<"TORLB DELETE "<<v<<" at d="<<d<<endl;
 	BucketToRelabel& ll = bToRelabel[d];
 	if (nv.bToRelabelPrev != UNDEF_NODE)
 		nodes[nv.bToRelabelPrev].bToRelabelNext = nv.bToRelabelNext;
@@ -664,30 +690,38 @@ NodeID NetworkMaxFlowSimplex::toRelabelDelete(NodeID v) {
 	nv.bToRelabelNext = nv.bToRelabelPrev = UNDEF_NODE;
 	return v;
 }
-// todo: add pointer to the first non empty bucket level
+// returns a v from the toRelabel list with minimal d and deletes it from the list
 NodeID NetworkMaxFlowSimplex::toRelabelExtractMin() {
-	for (Dist d = 0; d <= n; d++) {
-		BucketToRelabel& ll = bToRelabel[d];
+	for (; bToRelabelMinD <= n; bToRelabelMinD++) {
+		BucketToRelabel& ll = bToRelabel[bToRelabelMinD];
 		if (ll.first != UNDEF_NODE) {
-			if (nodes[ll.first].d != d) {
-				cout << "ll.first.d: " << nodes[ll.first].d << " != d:" << d << endl;
-			}
-			assert(nodes[ll.first].d == d);
+			if (nodes[ll.first].d != bToRelabelMinD)
+				cerr << "ll.first: " << ll.first << ", ll.first.d: " << nodes[ll.first].d << " != d:" << bToRelabelMinD << endl;
+			assert(nodes[ll.first].d == bToRelabelMinD);
 			return toRelabelDelete(ll.first);
 		}
 	}
 	assert(false);
 	return UNDEF_NODE;
 }
+// returns true if the toRelabel list is empty (or does not need to be processed further in the lazy relabeling case)
 bool NetworkMaxFlowSimplex::toRelabelEmpty() {
-	for (Dist d = 0; d <= n; d++) {
-		BucketToRelabel& ll = bToRelabel[d];
+	for (; bToRelabelMinD <= n; bToRelabelMinD++) {
+#if defined(LAZY_RELABEL)
+		if (bToRelabelMinD > bPivotsMinD) { // check lazy relabel condition
+			return true;
+		}
+#endif
+		BucketToRelabel& ll = bToRelabel[bToRelabelMinD];
 		if (ll.first != UNDEF_NODE)
 			return false;
 	}
 	return true;
 }
 
+// try to make v current, find and set its new current arc
+// if v is already current, does nothing
+// if v cannot be made current it is added to the toRelabel list
 bool NetworkMaxFlowSimplex::makeCur(NodeID v) {
 #ifdef USE_STATS_COUNT
 	c_makeCur++;
@@ -708,12 +742,17 @@ bool NetworkMaxFlowSimplex::makeCur(NodeID v) {
 		nv.cur++;
 	}
 	// add v to to_relabel list
-	if (nv.d < n)
-		toRelabelInsert(v, nv.d);
+	if (nv.d < n) {
+		if (!toRelabelContains(v))
+			toRelabelInsert(v, nv.d);
+	}
 	return false;
 }
 
+// relabel v
+// this must result in a strict increase of v's d label based on the assumption that v's current arc was of minimal index
 void NetworkMaxFlowSimplex::relabel(NodeID v) {
+	// try global update if a lot of work has been done
 	globalRelabelWork++;
 	if (globalRelabelWork * globalRelabelFreq > globalRelabelThreshold) {
 		doGlobalRelabel();
@@ -721,6 +760,8 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 		assert(toRelabelEmpty());
 		return;
 	}
+
+	// relabel()
 #ifdef USE_STATS_COUNT
 	c_relabel++;
 #endif
@@ -764,20 +805,29 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 		ArcID uv = avu.rev;
 		if (nu.cur == uv) {
 			if (verbose >= 3) cout << u << " (d=" << nu.d << ") made non-current by relabeling of " << v << endl;
-			makeCur(u);
+			makeCur(u); // if fail u is added in toRelabel list in makeCur()
 		}
 	}
 
+
 }
 
-void NetworkMaxFlowSimplex::doGlobalRelabel() {
-	static int k = 0; k++; cout << "Global relabeling: "<<k<<endl;
-
+// make the toRelabel list empty
+void NetworkMaxFlowSimplex::toRelabelFlush() {
 	// empty toRelabel list
 	forAllNodes(u) {
 		if (toRelabelContains(u))
 			toRelabelDelete(u);
 	}
+
+}
+
+// do a global update
+// do a BFS to compute exact d labels (BFS = dijkstra in undirected graphs)
+void NetworkMaxFlowSimplex::doGlobalRelabel() {
+	static int k = 0; k++; cout << "Global relabeling: "<<k<<endl;
+
+	toRelabelFlush();
 
 	// do BFS from source to compute exact labels
 	nodes[source].d = 0;
@@ -789,7 +839,6 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 	[&](NodeID u, bool leaf){ // post node
 	},
 	[&](NodeID u, ArcID uv, int headColor){ // process arc
-		//cout<<"BFS uv="<<uv<<endl;
 		Node& nu = nodes[u];
 		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
 		NodeID v = auv.head; Node& nv = nodes[v];
@@ -815,6 +864,8 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 	},
 	color);
 
+	/*
+	// check current arcs are correct after bfs
 	forAllNodes(v) {
 		forAllOutArcs(v, vu, is) {
 			Node& nv = nodes[v];
@@ -831,14 +882,16 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 			}
 		}
 	}
+	 */
 }
 
 
 #endif
 
+
+
+// unused stuff below
 //static double t_=timer(); if (timer()-t_>1.0) { cout<<"event"<<endl; t_=timer(); }
-
-
 void NetworkMaxFlowSimplex::testBFS() {
 	vector<int> color(n, COLOR_WHITE);
 

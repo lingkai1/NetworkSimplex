@@ -14,7 +14,7 @@ typedef long long ArcID;
 #define UNDEF_NODE (NodeID)-1
 #define UNDEF_ARC (ArcID)-1
 
-typedef int Dist;
+typedef NodeID Dist;
 #define INF_DIST (Dist)1000000000;
 
 struct Arc;
@@ -28,8 +28,6 @@ struct Arc {
 	};
 	NodeID head; // arc head
 	ArcID rev; // reverse arc
-
-
 };
 
 struct Node {
@@ -49,7 +47,6 @@ struct Node {
 
 	// doubly linked to allow deletion inside
 	NodeID bToRelabelNext, bToRelabelPrev;
-
 	NodeID bPivotsNext, bPivotsPrev;
 
 };

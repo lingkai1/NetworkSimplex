@@ -2,7 +2,6 @@
 #define NWS_H_
 
 #include "types.hpp"
-//#define NDEBUG
 #include "assert.h"
 #include <iostream>
 #include <algorithm>
@@ -20,14 +19,13 @@
 double timer();
 #endif
 
-#define IN_NONE 0
-#define IN_S 1
-#define IN_T 2
+#define IN_NONE -1
+#define IN_S 0
+#define IN_T 1
 
-//#define PLAIN_SIMPLEX
-#define GGH_SIMPLEX
-
-
+#define GGT_RELABEL // Use GGT algorithm (relabeling)
+#define LAZY_RELABEL // use lazy relabeling trick
+//#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
 
 #define forAllNodes(u) for (NodeID u = 0; u <= nMax; u++)
 #define forAllOutArcs(u, i, iStop) if (nodes[u].first != UNDEF_ARC)\
@@ -52,14 +50,12 @@ public:
 	Flow flow; // flow value
 	NodeID nSentinel; // end of the node list marker
 
-	// buckets
-	// todo implement
 	std::vector<BucketToRelabel> bToRelabel; // for each level d first node to relabel
+	Dist bToRelabelMinD;
 	std::vector<BucketPivot> bPivots; // for each level d first pivot arc
-	//std::stack<NodeID> toRelabel; // todo remove this and change implementation
+	Dist bPivotsMinD;
 
 	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
-	//NWS(int n, int m);
 	~NetworkMaxFlowSimplex();
 
 	void solve();
@@ -88,7 +84,6 @@ public:
 	bool hasOutPivots(NodeID u);
 	bool hasInPivots(NodeID u);
 
-
 	bool isTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu) { return nv.parent == vu || nu.parent == uv; }
 	bool isResidual(Arc& auv) { return auv.resCap > 0; }
 	bool isResidualOrTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu, Arc& auv) { return isResidual(auv) || isTreeArc(nu, nv, uv, vu); }
@@ -101,38 +96,36 @@ private:
 	void constructorDimacs(std::istream& is);
 	void constructorDimacsFail(int lineNum, int code);
 
-
 	bool pivotsContains(NodeID v);
 	void pivotsInsert(NodeID v, Dist d);
 	ArcID pivotsExtractMin();
 	NodeID pivotsDelete(NodeID v);
 
+#if defined(GGT_RELABEL)
 	NodeID globalRelabelWork;
 	double globalRelabelFreq;
 	NodeID globalRelabelThreshold;
 
-#if defined(GGH_SIMPLEX)
 	bool toRelabelContains(NodeID v);
 	void toRelabelInsert(NodeID v, Dist d);
 	NodeID toRelabelDelete(NodeID v);
 	NodeID toRelabelExtractMin();
 	bool toRelabelEmpty();
-#endif
 
-#if defined(GGH_SIMPLEX)
 	bool makeCur(NodeID v);
 	void relabel(NodeID v);
+	void toRelabelFlush();
 	void doGlobalRelabel();
 #endif
-
-#include "dfsbfs.hpp"
-	void testBFS();
-	void testDFS();
 
 	void getSubtreeLastNode(NodeID u, NodeID& uLast);
 	void deleteSubtree(NodeID q, NodeID u, NodeID uLast);
 	void addSubtreeAsChild(NodeID r, NodeID p, NodeID pLast, NodeID u);
 	void changeRoot(NodeID q, NodeID r, NodeID& rLast);
+
+#include "dfsbfs.hpp"
+	void testBFS();
+	void testDFS();
 
 	// statistics
 	// times
