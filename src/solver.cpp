@@ -26,8 +26,8 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 		bToRelabel[d].first = bToRelabel[d].last = UNDEF_NODE;
 		bPivots[d].first = bPivots[d].last = UNDEF_NODE;
 	}
-	bPivotsMinD = 0;
-	bToRelabelMinD = 0;
+	bPivotsMinD = bPivotsMaxD = 0;
+	bToRelabelMinD = bToRelabelMaxD = 0;
 
 	vector<int> color(n); // todo: to optimize (reuse another field maybe)
 	fill(color.begin(), color.end(), COLOR_WHITE);
@@ -323,16 +323,15 @@ void NetworkMaxFlowSimplex::solve() {
 					ArcID vu = auv.rev; Arc& avu = arcs[vu];
 					if (isInPivot(nv, avu)) {
 						if (!pivotsContains(v))
-							pivotsInsert(v, nv.d);
+							pivotsInsert(v, nv.d); // costly
 					}
 				}
 			});
 
 #if defined(GGT_RELABEL)
 			makeCur(y); // only y can be made non current (if its current arc was xy (yx))
-			//forAllNodes(v) makeCur(v);
 			//globalRelabelWork = 0;
-			while (!toRelabelEmpty())
+			while (!toRelabelProcessed())
 				relabel(toRelabelExtractMin());
 #endif
 #ifdef USE_STATS_COUNT
@@ -375,14 +374,13 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 
 				if (hasOutPivots(u))
-					pivotsInsert(u, nu.d);
+					pivotsInsert(u, nu.d);  // costly
 			});
 
 #if defined(GGT_RELABEL)
-			makeCur(y); // only y can be made non current (if its current arc was xy (yx))
-			//forAllNodes(v) makeCur(v);
+			makeCur(y);
 			//globalRelabelWork = 0;
-			while (!toRelabelEmpty())
+			while (!toRelabelProcessed())
 				relabel(toRelabelExtractMin());
 #endif
 #ifdef USE_STATS_COUNT
@@ -398,7 +396,7 @@ void NetworkMaxFlowSimplex::solve() {
 #if defined(GGT_RELABEL)
 			makeCur(y);
 			//globalRelabelWork = 0;
-			while (!toRelabelEmpty())
+			while (!toRelabelProcessed())
 				relabel(toRelabelExtractMin());
 #endif
 
@@ -580,12 +578,13 @@ bool NetworkMaxFlowSimplex::pivotsContains(NodeID v) {
 }
 // inserts v into the pivots list at level d
 void NetworkMaxFlowSimplex::pivotsInsert(NodeID v, Dist d) {
+	assert(0 <= d && d <= n);
 	assert(!pivotsContains(v));
 #ifdef USE_STATS_COUNT
 	c_pivotsInserted++;
 #endif
-	if (d < bPivotsMinD)
-		bPivotsMinD = d;
+	if (d < bPivotsMinD) bPivotsMinD = d;
+	if (d > bPivotsMaxD) bPivotsMaxD = d;
 	//cout<<"PIVOT INSERT "<<v<<" at d="<<d<<endl;
 	Node& nv = nodes[v];
 	assert(nv.tree == IN_S);
@@ -622,7 +621,7 @@ NodeID NetworkMaxFlowSimplex::pivotsDelete(NodeID v) {
 }
 // returns a v from the pivots list with minimal d and deletes it from the list
 ArcID NetworkMaxFlowSimplex::pivotsExtractMin() {
-	for (; bPivotsMinD <= n; bPivotsMinD++) {
+	for (; bPivotsMinD <= bPivotsMaxD; bPivotsMinD++) {
 		BucketPivot& ll = bPivots[bPivotsMinD];
 		while (ll.first != UNDEF_NODE) {
 			NodeID v = ll.first; Node& nv = nodes[v];
@@ -657,10 +656,11 @@ bool NetworkMaxFlowSimplex::toRelabelContains(NodeID v) {
 }
 // inserts v in the toRelabel list at level d
 void NetworkMaxFlowSimplex::toRelabelInsert(NodeID v, Dist d) {
+	assert(0 <= d && d <= n);
 	//cout<<"TORLB INSERT "<<v<<" at d="<<d<<endl;
 	assert(!toRelabelContains(v));
-	if (d < bToRelabelMinD)
-		bToRelabelMinD = d;
+	if (d < bToRelabelMinD) bToRelabelMinD = d;
+	if (d > bToRelabelMaxD) bToRelabelMaxD = d;
 	Node& nv = nodes[v];
 	BucketToRelabel& ll = bToRelabel[d];
 	if (ll.last != UNDEF_NODE) {
@@ -692,7 +692,7 @@ NodeID NetworkMaxFlowSimplex::toRelabelDelete(NodeID v) {
 }
 // returns a v from the toRelabel list with minimal d and deletes it from the list
 NodeID NetworkMaxFlowSimplex::toRelabelExtractMin() {
-	for (; bToRelabelMinD <= n; bToRelabelMinD++) {
+	for (; bToRelabelMinD <= bToRelabelMaxD; bToRelabelMinD++) {
 		BucketToRelabel& ll = bToRelabel[bToRelabelMinD];
 		if (ll.first != UNDEF_NODE) {
 			if (nodes[ll.first].d != bToRelabelMinD)
@@ -704,9 +704,18 @@ NodeID NetworkMaxFlowSimplex::toRelabelExtractMin() {
 	assert(false);
 	return UNDEF_NODE;
 }
-// returns true if the toRelabel list is empty (or does not need to be processed further in the lazy relabeling case)
+// returns true if the toRelabel list is empty
 bool NetworkMaxFlowSimplex::toRelabelEmpty() {
-	for (; bToRelabelMinD <= n; bToRelabelMinD++) {
+	for (; bToRelabelMinD <= bToRelabelMaxD; bToRelabelMinD++) {
+		BucketToRelabel& ll = bToRelabel[bToRelabelMinD];
+		if (ll.first != UNDEF_NODE)
+			return false;
+	}
+	return true;
+}
+// returns true if the toRelabel list is empty (or does not need to be processed further in the lazy relabeling case)
+bool NetworkMaxFlowSimplex::toRelabelProcessed() {
+	for (; bToRelabelMinD <= bToRelabelMaxD; bToRelabelMinD++) {
 #if defined(LAZY_RELABEL)
 		if (bToRelabelMinD > bPivotsMinD) { // check lazy relabel condition
 			return true;
@@ -757,10 +766,8 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	if (globalRelabelWork * globalRelabelFreq > globalRelabelThreshold) {
 		doGlobalRelabel();
 		globalRelabelWork = 0;
-		assert(toRelabelEmpty());
 		return;
 	}
-
 	// relabel()
 #ifdef USE_STATS_COUNT
 	c_relabel++;
@@ -769,6 +776,29 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	assert(nv.d >= 0);
 	assert(nv.d < n);
 	assert(nv.first < nodes[v+1].first); // there is at least one incident arc to v
+
+#if defined(GAP_RELABEL)
+	if (bToRelabel[nv.d].first == UNDEF_NODE) {
+		if (pivotsContains(v)) {
+			pivotsDelete(v);
+			pivotsInsert(v, n);
+		}
+		nv.d = n;
+		while (!toRelabelEmpty()) {
+			NodeID f = toRelabelExtractMin();
+			Node& nf = nodes[f];
+			if (pivotsContains(f)) {
+				pivotsDelete(f);
+				pivotsInsert(f, n);
+			}
+			toRelabelDelete(f);
+			nf.d = n;
+		}
+		bToRelabelMinD = bToRelabelMaxD = 0;
+		return;
+	}
+#endif
+
 	Dist newD = INF_DIST;
 	forAllOutArcs(v, vu, is) {
 		Arc& avu = arcs[vu];
@@ -785,7 +815,11 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	assert(newD > nv.d);
 
 	if (newD >= n) {
-		nv.d = newD;
+		if (pivotsContains(v)) {
+			pivotsDelete(v);
+			pivotsInsert(v, n);
+		}
+		nv.d = n;
 		if (verbose >= 3) cout<<"d("<<v<<") >= n so delete it"<<endl;
 		return;
 	}
@@ -809,7 +843,6 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 		}
 	}
 
-
 }
 
 // make the toRelabel list empty
@@ -819,7 +852,8 @@ void NetworkMaxFlowSimplex::toRelabelFlush() {
 		if (toRelabelContains(u))
 			toRelabelDelete(u);
 	}
-
+	assert(toRelabelEmpty());
+	bToRelabelMinD = bToRelabelMaxD = 0;
 }
 
 // do a global update
@@ -951,5 +985,4 @@ void NetworkMaxFlowSimplex::testDFS() {
 		cout << "post arc: " << u << "->"  << arcs[a].head << endl;
 	}, color);
 }
-
 

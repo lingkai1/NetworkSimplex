@@ -24,7 +24,8 @@ double timer();
 #define IN_T 1
 
 #define GGT_RELABEL // Use GGT algorithm (relabeling)
-#define LAZY_RELABEL // use lazy relabeling trick
+#define LAZY_RELABEL // use lazy relabeling heuristic
+#define GAP_RELABEL // use gap relabeling heuristic
 //#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
 
 #define forAllNodes(u) for (NodeID u = 0; u <= nMax; u++)
@@ -51,9 +52,9 @@ public:
 	NodeID nSentinel; // end of the node list marker
 
 	std::vector<BucketToRelabel> bToRelabel; // for each level d first node to relabel
-	Dist bToRelabelMinD;
+	Dist bToRelabelMinD, bToRelabelMaxD;
 	std::vector<BucketPivot> bPivots; // for each level d first pivot arc
-	Dist bPivotsMinD;
+	Dist bPivotsMinD, bPivotsMaxD;
 
 	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
 	~NetworkMaxFlowSimplex();
@@ -111,6 +112,7 @@ private:
 	NodeID toRelabelDelete(NodeID v);
 	NodeID toRelabelExtractMin();
 	bool toRelabelEmpty();
+	bool toRelabelProcessed();
 
 	bool makeCur(NodeID v);
 	void relabel(NodeID v);
