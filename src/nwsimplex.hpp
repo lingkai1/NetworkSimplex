@@ -85,56 +85,27 @@ public:
 		}
 	}
 
-	// op can return false to break loop
-	template <typename Op> inline void forAllOutPivots(NodeID u, const Op& op) {
-		Node& nu = nodes[u];
-		assert(nu.tree == IN_S);
-		forAllOutArcs(u, uv, is) {
-			Arc& auv = arcs[uv];
-			NodeID v = auv.head; Node& nv = nodes[v];
-			if (nv.tree == IN_T) {
-				if (auv.resCap > 0) {
-					if (!op(uv)) break;
-				}
-			}
-		}
-	}
-	// op can return false to break loop
-	template <typename Op> inline void forAllInPivots(NodeID u, const Op& op) {
-		Node& nu = nodes[u];
-		assert(nu.tree == IN_T);
-		forAllOutArcs(u, uv, is) {
-			Arc& auv = arcs[uv];
-			NodeID v = auv.head; Node& nv = nodes[v];
-			ArcID vu = auv.rev; Arc& avu = arcs[vu];
-			if (nv.tree == IN_S) {
-				if (avu.resCap > 0) {
-					if (!op(vu)) break;
-				}
-			}
-		}
-	}
+	bool hasOutPivots(NodeID u);
+	bool hasInPivots(NodeID u);
 
-	bool hasOutPivots(NodeID v);
-	bool hasInPivots(NodeID v);
+
+	bool isTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu) { return nv.parent == vu || nu.parent == uv; }
+	bool isResidual(Arc& auv) { return auv.resCap > 0; }
+	bool isResidualOrTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu, Arc& auv) { return isResidual(auv) || isTreeArc(nu, nv, uv, vu); }
+	bool isPivot(Node& nu, Node& nv, Arc& auv) { return isResidual(auv) && nu.tree == IN_S && nv.tree == IN_T; }
+	bool isInPivot(Node& nv, Arc& avu) { return isResidual(avu) && nv.tree == IN_S; }
+	bool isOutPivot(Node& nv, Arc& auv) { return isResidual(auv) && nv.tree == IN_T; }
 
 private:
 	void initialize();
 	void constructorDimacs(std::istream& is);
 	void constructorDimacsFail(int lineNum, int code);
 
-	// todo: change implementation (use all buckets)
-#if defined(PLAIN_SIMPLEX)
-	std::list<ArcID> pivots;
-	void pivotsInsert(ArcID i);
-	ArcID pivotsExtractMin();
-	bool pivotsDelete(ArcID i);
-#elif defined(LAZY_SIMPLEX)
+
 	bool pivotsContains(NodeID v);
 	void pivotsInsert(NodeID v, Dist d);
 	ArcID pivotsExtractMin();
 	NodeID pivotsDelete(NodeID v);
-#endif
 
 	NodeID globalRelabelWork;
 	double globalRelabelFreq;
