@@ -25,7 +25,7 @@ double timer();
 #define IN_T 2
 
 //#define PLAIN_SIMPLEX
-#define LAZY_SIMPLEX // todo: implement the pivot list with buckets
+#define GGH_SIMPLEX
 
 
 
@@ -111,7 +111,7 @@ private:
 	double globalRelabelFreq;
 	NodeID globalRelabelThreshold;
 
-#if defined(LAZY_SIMPLEX)
+#if defined(GGH_SIMPLEX)
 	bool toRelabelContains(NodeID v);
 	void toRelabelInsert(NodeID v, Dist d);
 	NodeID toRelabelDelete(NodeID v);
@@ -119,7 +119,7 @@ private:
 	bool toRelabelEmpty();
 #endif
 
-#if defined(LAZY_SIMPLEX)
+#if defined(GGH_SIMPLEX)
 	bool makeCur(NodeID v);
 	void relabel(NodeID v);
 	void doGlobalRelabel();

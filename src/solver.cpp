@@ -147,8 +147,8 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 
 
-#if defined(LAZY_SIMPLEX)
-	globalRelabelFreq = 1.0;
+#if defined(GGH_SIMPLEX)
+	globalRelabelFreq = 0.2;
 	globalRelabelThreshold = n;
 	globalRelabelWork = 0;
 	doGlobalRelabel();
@@ -324,9 +324,8 @@ void NetworkMaxFlowSimplex::solve() {
 				}
 			});
 
-#if defined(PLAIN_SIMPLEX)
-#elif defined(LAZY_SIMPLEX)
-			makeCur(y); makeCur(w);
+#if defined(GGH_SIMPLEX)
+			makeCur(y);
 			//forAllNodes(v) makeCur(v);
 			//globalRelabelWork = 0;
 			while (!toRelabelEmpty())
@@ -372,9 +371,8 @@ void NetworkMaxFlowSimplex::solve() {
 					pivotsInsert(u, nu.d);
 			});
 
-#if defined(PLAIN_SIMPLEX)
-#elif defined(LAZY_SIMPLEX)
-			makeCur(y); makeCur(w);
+#if defined(GGH_SIMPLEX)
+			makeCur(y);
 			//forAllNodes(v) makeCur(v);
 			//globalRelabelWork = 0;
 			while (!toRelabelEmpty())
@@ -389,9 +387,10 @@ void NetworkMaxFlowSimplex::solve() {
 			// pivot is the leaving arc. keep the same basis
 			if (!hasOutPivots(v))
 				pivotsDelete(v);
-#if defined(PLAIN_SIMPLEX)
-#elif defined(LAZY_SIMPLEX)
-			makeCur(w);
+
+#if defined(GGH_SIMPLEX)
+			makeCur(y);
+			//forAllNodes(v) makeCur(v);
 			//globalRelabelWork = 0;
 			while (!toRelabelEmpty())
 				relabel(toRelabelExtractMin());
@@ -569,7 +568,7 @@ bool NetworkMaxFlowSimplex::pivotsContains(NodeID v) {
 }
 void NetworkMaxFlowSimplex::pivotsInsert(NodeID v, Dist d) {
 	assert(!pivotsContains(v));
-	//cout<<"PIVOTINSERT "<<v<<" at d="<<d<<endl;
+	//cout<<"PIVOT INSERT "<<v<<" at d="<<d<<endl;
 	Node& nv = nodes[v];
 	assert(nv.tree == IN_S);
 	BucketPivot& ll = bPivots[d];
@@ -589,7 +588,7 @@ void NetworkMaxFlowSimplex::pivotsInsert(NodeID v, Dist d) {
 }
 NodeID NetworkMaxFlowSimplex::pivotsDelete(NodeID v) {
 	Node& nv = nodes[v]; Dist d = nv.d;
-	//cout<<"PIVOTDELETE "<<v<<" at d="<<d<<endl;
+	//cout<<"PIVOT DELETE "<<v<<" at d="<<d<<endl;
 	BucketPivot& ll = bPivots[d];
 	if (nv.bPivotsPrev != UNDEF_NODE)
 		nodes[nv.bPivotsPrev].bPivotsNext = nv.bPivotsNext;
@@ -620,7 +619,6 @@ ArcID NetworkMaxFlowSimplex::pivotsExtractMin() {
 				if (isOutPivot(nu, avu))
 					return vu;
 			}
-			static double t_=timer(); if (timer()-t_>-1.0) { cout<<"event d="<<d<<" deleting pivot: "<<ll.first<<endl; t_=timer(); }
 			// could not find at least one pivot arc for this pivot vertex
 			//assert(false); // there can be such vertices
 			if (pivotsDelete(ll.first) == ll.first) {
@@ -633,7 +631,7 @@ ArcID NetworkMaxFlowSimplex::pivotsExtractMin() {
 }
 
 
-#if defined(LAZY_SIMPLEX)
+#if defined(GGH_SIMPLEX)
 bool NetworkMaxFlowSimplex::toRelabelContains(NodeID v) {
 	Node& nv = nodes[v];
 	return !(nv.bToRelabelPrev == UNDEF_NODE && nv.bToRelabelNext == UNDEF_NODE && bToRelabel[nv.d].first != v);
@@ -671,6 +669,9 @@ NodeID NetworkMaxFlowSimplex::toRelabelExtractMin() {
 	for (Dist d = 0; d <= n; d++) {
 		BucketToRelabel& ll = bToRelabel[d];
 		if (ll.first != UNDEF_NODE) {
+			if (nodes[ll.first].d != d) {
+				cout << "ll.first.d: " << nodes[ll.first].d << " != d:" << d << endl;
+			}
 			assert(nodes[ll.first].d == d);
 			return toRelabelDelete(ll.first);
 		}
@@ -770,7 +771,7 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 }
 
 void NetworkMaxFlowSimplex::doGlobalRelabel() {
-	static int k = 0; k++; cout << "GlobalRelabeling: "<<k<<endl;
+	static int k = 0; k++; cout << "Global relabeling: "<<k<<endl;
 
 	// empty toRelabel list
 	forAllNodes(u) {
@@ -788,37 +789,54 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 	[&](NodeID u, bool leaf){ // post node
 	},
 	[&](NodeID u, ArcID uv, int headColor){ // process arc
+		//cout<<"BFS uv="<<uv<<endl;
 		Node& nu = nodes[u];
 		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
 		NodeID v = auv.head; Node& nv = nodes[v];
-		if (headColor == COLOR_WHITE) {
-			if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
+		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
+			if (nv.d > nu.d + 1 || headColor == COLOR_WHITE) {
+				if (pivotsContains(v)) {
+					pivotsDelete(v);
+					pivotsInsert(v, nu.d + 1);
+				}
 				nv.d = nu.d + 1;
 				nv.cur = vu;
-				return auv.head != sink; // do not search further than sink
 			}
-			else {
-				nv.d = n;
-				nv.cur = nodes[v+1].first;
-				return false;
+			else if (nv.d == nu.d + 1) {
+				if (nv.cur > vu) {
+					nv.cur = vu;
+				}
 			}
-		}
-		else if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) { // length 1 cross arc who may result in lower index for v's current arc
-			if (nv.d == nu.d + 1 && nv.cur > vu) {
-				nv.cur = vu; // update current pointer so that after BFS, arcs of v with lower indices cannot satisfy d(u)+l(u,v)=d(v)
-			}
-			return false;
+			return headColor == COLOR_WHITE && u != sink; // respect BFS order and do not search further than sink
 		}
 		else
 			return false;
+
 	},
 	color);
+
+	forAllNodes(v) {
+		forAllOutArcs(v, vu, is) {
+			Node& nv = nodes[v];
+			Arc& avu = arcs[vu]; NodeID u = avu.head; Node& nu = nodes[u];
+			ArcID uv = avu.rev; Arc& auv = arcs[uv];
+			if (nv.d == nu.d + 1 && isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
+				if (nv.cur != vu) {
+					cout<<"v="<<v<<endl;
+					cout<<"nv.cur="<<nv.cur<<endl;
+					cout<<"vu="<<vu<<endl;
+				}
+				assert(nv.cur == vu);
+				break;
+			}
+		}
+	}
 }
 
 
 #endif
 
-
+//static double t_=timer(); if (timer()-t_>1.0) { cout<<"event"<<endl; t_=timer(); }
 
 
 void NetworkMaxFlowSimplex::testBFS() {
