@@ -113,13 +113,14 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 	listPivots.initialize();
 	listRelabel.initialize();
 
-	list.initialize();
+	dCount.resize(nSentinel+1);
+	fill(dCount.begin(), dCount.end(), 0);
 	forAllNodes(u) {
-		list.insert(u, nodes[u].d);
+		dCount[nodes[u].d]++;
 	}
 
 #if defined(GGT_RELABEL)
-	globalRelabelFreq = 0.05;
+	globalRelabelFreq = 0.2;
 	globalRelabelThreshold = nSentinel;
 	globalRelabelWork = 0;
 	doGlobalRelabel();
@@ -151,6 +152,7 @@ void NetworkMaxFlowSimplex::solve() {
 	c_pivotsDeleted = 0;
 	c_makeCur = 0;
 	c_relabel = 0;
+	c_gap = 0;
 #endif
 
 	flow = 0;
@@ -642,8 +644,11 @@ bool NetworkMaxFlowSimplex::makeCur(NodeID v) {
 
 #if defined(GAP_RELABEL)
 void NetworkMaxFlowSimplex::gap(Dist k) {
-	cout<<"gap k="<<k<<endl;
-	assert(list.b[k].first == nSentinel);
+	//cout<<"gap k="<<k<<endl;
+#ifdef USE_STATS_COUNT
+	c_gap++;
+#endif
+	assert(dCount[k] == 0);
 	for (Dist d = k+1; d <= listRelabel.dmax; d++) {
 		NodeID v = listRelabel.b[d].first;
 		while (v != nSentinel) {
@@ -651,7 +656,7 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 			Node& nv = nodes[v];
 			NodeID next = nv.listRelabelNext;
 			listPivots.update(v, nSentinel);
-			list.update(v, nSentinel);
+			dCount[nv.d]--; dCount[nSentinel]++;
 			nv.d = nSentinel;
 			v = next;
 		}
@@ -696,13 +701,13 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 
 	if (newD >= nSentinel) {
 		listPivots.update(v, nSentinel);
-		list.update(v, nSentinel);
+		dCount[nv.d]--; dCount[nSentinel]++;
 		nv.d = nSentinel;
 		return;
 	}
 
 	listPivots.update(v, newD);
-	list.update(v, newD);
+	dCount[nv.d]--; dCount[newD]++;
 	nv.d = newD; // increase key of v
 
 	if (verbose >= 3) cout<<v<<" (d="<<nodes[v].d<<") relabeled now current to "<<arcs[nv.cur].head<<endl;
@@ -719,7 +724,7 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	}
 
 #if defined(GAP_RELABEL)
-	if (list.b[oldD].first == nSentinel) {
+	if (dCount[oldD] == 0) {
 		gap(oldD);
 		return;
 	}
@@ -760,7 +765,7 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
 			if (nv.d > nu.d + 1 || headColor == COLOR_WHITE) {
 				listPivots.update(v, nu.d + 1);
-				list.update(v, nu.d + 1);
+				dCount[nv.d]--; dCount[nu.d + 1]++;
 				nv.d = nu.d + 1;
 				nv.cur = vu;
 			}

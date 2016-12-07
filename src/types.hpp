@@ -48,7 +48,6 @@ struct Node {
 	// doubly linked to allow simple deletion
 	NodeID listPivotsPrev, listPivotsNext;
 	NodeID listRelabelPrev, listRelabelNext;
-	NodeID listPrev, listNext;
 
 };
 

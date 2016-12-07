@@ -10,7 +10,7 @@ void NetworkMaxFlowSimplex::initialize() {
 }
 
 // constructors
-NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format, int verbose) : listPivots(*this), listRelabel(*this), list(*this)
+NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format, int verbose) : listPivots(*this), listRelabel(*this)
 {
 	initialize();
 	this->verbose = verbose;
@@ -53,6 +53,7 @@ void NetworkMaxFlowSimplex::printCountStats() {
 	cout << "Pivots deleted: " << c_pivotsDeleted << endl;
 	cout << "Make current calls: " << c_makeCur << endl;
 	cout << "Relabel calls: " << c_relabel << endl;
+	cout << "Gaps: " << c_gap << endl;
 }
 #endif
 

@@ -51,10 +51,8 @@ public:
 #define bpq(name) listRelabel##name
 #include "bpq.hpp"
 #undef bpq
-#define bpq(name) list##name
-#include "bpq.hpp"
-#undef bpq
 
+	std::vector<NodeID> dCount;
 
 	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
 	~NetworkMaxFlowSimplex();
@@ -142,6 +140,7 @@ private:
 	long long c_pivotsDeleted;
 	long long c_makeCur;
 	long long c_relabel;
+	long long c_gap;
 #endif
 
 };
