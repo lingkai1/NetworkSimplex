@@ -53,10 +53,58 @@ void NetworkMaxFlowSimplex::printCountStats() {
 	cout << "Pivots deleted: " << c_pivotsDeleted << endl;
 	cout << "Make current calls: " << c_makeCur << endl;
 	cout << "Relabel calls: " << c_relabel << endl;
+	cout << "Global updates: " << c_globalupdate << endl;
 	cout << "Gaps: " << c_gap << endl;
 }
 #endif
 
+
+// print a subtree with a custom printNode function
+template <typename PrintNode>
+void NetworkMaxFlowSimplex::printSubTree(NodeID root, const PrintNode& print) {
+	forAllSubTree(root, [&](NodeID u){
+		Node& nu = nodes[u];
+		if (u == root) {
+			print(root);
+		}
+		else {
+			cout << ",";
+			print(u);
+		}
+	});
+}
+void NetworkMaxFlowSimplex::printSubTree(NodeID root) {
+	return printSubTree(root, [&](NodeID u){ cout << u; });
+}
+
+void NetworkMaxFlowSimplex::printS() {
+	cout << "S tree rooted at " << source << endl;
+	printSubTree(source, [&](NodeID u){ cout << u << " (d=" << nodes[u].d << ")"; });
+	cout << endl;
+	cout << "S arcs:" << endl;
+	forAllSubTree(source, [&](NodeID u){
+		ArcID r = nodes[u].parent;
+		if (u != source && r != UNDEF_ARC) {
+			Arc& ar = arcs[r]; ArcID i = arcs[r].rev; Arc& ai = arcs[i];
+			NodeID p = ar.head;
+			cout << p << "->" << u << " rc: " << ai.resCap << endl;
+		}
+	});
+}
+void NetworkMaxFlowSimplex::printT() {
+	cout << "T tree rooted at " << sink << endl;
+	printSubTree(sink, [&](NodeID u){ cout << u << " (d=" << nodes[u].d << ")"; });
+	cout << endl;
+	cout << "T arcs:" << endl;
+	forAllSubTree(sink, [&](NodeID u){
+		ArcID r = nodes[u].parent;
+		if (u != sink && r != UNDEF_ARC) {
+			Arc& ar = arcs[r]; ArcID i = arcs[r].rev; Arc& ai = arcs[i];
+			NodeID p = ar.head;
+			cout << u << "->" << p << " rc: " << ai.resCap << endl;
+		}
+	});
+}
 
 
 

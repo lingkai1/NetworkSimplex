@@ -41,19 +41,11 @@ struct Node {
 	NodeID next; // next node in the tree
 	NodeID prev; // prev node in the tree
 	NodeID stSize; // size of the subtree rooted at this node
-
 	int tree; // current tree (simplex multiplier)
-
 
 	// doubly linked to allow simple deletion
 	NodeID listPivotsPrev, listPivotsNext;
 	NodeID listRelabelPrev, listRelabelNext;
-
-};
-
-
-struct Bucket {
-	NodeID first;
 };
 
 #define forAllNodes(u) for (NodeID u = 0; u < nSentinel; u++)

@@ -23,9 +23,12 @@ double timer();
 #define IN_S 0
 #define IN_T 1
 
-#define GGT_RELABEL // Use GGT algorithm (relabeling)
-//#define LAZY_RELABEL // use lazy relabeling heuristic
+#define GGT_RELABEL // Use GGT algorithm (enable relabeling)
+#ifdef GGT_RELABEL
+#define GLOBAL_RELABEL // use global update heuristic
+#define LAZY_RELABEL // use lazy relabeling heuristic
 #define GAP_RELABEL // use gap relabeling heuristic
+#endif
 //#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
 
 
@@ -38,12 +41,13 @@ public:
 	ArcID m; // number of arcs
 	NodeID nMin; // smallest node id
 	NodeID nMax; // highest node id
+	NodeID nSentinel; // end of the node list marker == nMax+1
 	std::vector<Node> nodes; // array of nodes
 	std::vector<Arc> arcs; // array of arcs
 	NodeID source; // source node pointer
 	NodeID sink; // sink node pointer
 	Flow flow; // flow value
-	NodeID nSentinel; // end of the node list marker == nMax+1
+	std::vector<NodeID> dc; // for each level d maintains the number of nodes with label == d
 
 #define bpq(name) listPivots##name
 #include "bpq.hpp"
@@ -52,14 +56,8 @@ public:
 #include "bpq.hpp"
 #undef bpq
 
-	std::vector<NodeID> dCount;
-
 	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
 	~NetworkMaxFlowSimplex();
-
-	void solve();
-
-	void buildInitialBasis();
 
 	template <typename PrintNode> void printSubTree(NodeID root, const PrintNode& print);
 	void printSubTree(NodeID root);
@@ -71,7 +69,6 @@ public:
 #ifdef USE_STATS_COUNT
 	void printCountStats();
 #endif
-
 	template <typename Op> inline void forAllSubTree(NodeID root, const Op& op) {
 		NodeID u = root;
 		for (NodeID k = 0; k < nodes[root].stSize; k++) {
@@ -80,9 +77,11 @@ public:
 		}
 	}
 
+	void solve();
+	void buildInitialBasis();
+
 	bool hasOutPivots(NodeID u);
 	bool hasInPivots(NodeID u);
-
 	bool isTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu) { return nv.parent == vu || nu.parent == uv; }
 	bool isResidual(Arc& auv) { return auv.resCap > 0; }
 	bool isResidualOrTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu, Arc& auv) { return isResidual(auv) || isTreeArc(nu, nv, uv, vu); }
@@ -95,33 +94,29 @@ private:
 	void constructorDimacs(std::istream& is);
 	void constructorDimacsFail(int lineNum, int code);
 
-	ArcID listPivotsExtractMin();
 
-#if defined(GGT_RELABEL)
-	NodeID globalRelabelWork;
-	double globalRelabelFreq;
-	NodeID globalRelabelThreshold;
-
-	bool listRelabelProcessed();
-
-	bool makeCur(NodeID v);
-	void relabel(NodeID v);
-	void toRelabelFlush();
-	void doGlobalRelabel();
-
-#if defined(GAP_RELABEL)
-	void gap(Dist k);
-#endif
-#endif
-
+	ArcID extractMinPivot();
 	void getSubtreeLastNode(NodeID u, NodeID& uLast);
 	void deleteSubtree(NodeID q, NodeID u, NodeID uLast);
 	void addSubtreeAsChild(NodeID r, NodeID p, NodeID pLast, NodeID u);
 	void changeRoot(NodeID q, NodeID r, NodeID& rLast);
 
+#if defined(GGT_RELABEL)
+#if defined(GLOBAL_RELABEL)
+	NodeID globalRelabelWork;
+	double globalRelabelFreq;
+	NodeID globalRelabelThreshold;
+	void doGlobalRelabel();
+#endif
+	bool makeCur(NodeID v);
+	void relabel(NodeID v);
+#if defined(GAP_RELABEL)
+	void gap(Dist k);
+#endif
+#endif
+
+
 #include "dfsbfs.hpp"
-	void testBFS();
-	void testDFS();
 
 	// statistics
 	// times
@@ -140,9 +135,9 @@ private:
 	long long c_pivotsDeleted;
 	long long c_makeCur;
 	long long c_relabel;
+	long long c_globalupdate;
 	long long c_gap;
 #endif
-
 };
 
 #include "dfsbfs.cpp"

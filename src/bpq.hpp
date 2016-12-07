@@ -1,38 +1,36 @@
-#ifndef bpq
+/*#ifndef bpq
 #define bpq(a) listPivots
-#define __cplusplus 201103L
+#define __cplusplus 201103L // useless stuff meant to fix eclipse index errors
 #include "types.hpp"
 #include "assert.h"
 #include <vector>
 #include <list>
 #define Prev
 #define Next
-#endif
+#endif*/
 
 struct  bpq() { // bucket based priority queue
 	NetworkMaxFlowSimplex& p;
 	NodeID& nSentinel;
 	std::vector<Node>& nodes;
-	std::vector<Bucket> b;
+	std::vector<NodeID> first;
 	NodeID dmin; // min d in the queue
 	NodeID dmax; // max d in the queue
 
 	bpq()(NetworkMaxFlowSimplex& p) : p(p), nSentinel(p.nSentinel), nodes(p.nodes) {}
 
 	void initialize() {
-		b.resize(nSentinel+1); b.shrink_to_fit();
+		first.resize(nSentinel+1); first.shrink_to_fit();
 		forAllNodes(v) {
 			Node& nv = nodes[v];
 			nv.bpq(Prev) = nv.bpq(Next) = UNDEF_NODE;
 		}
 		for (Dist d = 0; d <= nSentinel; d++) {
-			Bucket& bd = b[d];
-			bd.first = nSentinel;
+			first[d] = nSentinel;
 		}
 		Node& nv = nodes[nSentinel];
 		nv.bpq(Prev) = nv.bpq(Next) = UNDEF_NODE;
-		Bucket& bv = b[nSentinel];
-		bv.first = nSentinel;
+		first[nSentinel] = nSentinel;
 		dmin = nSentinel;
 		dmax = 0;
 	}
@@ -46,28 +44,32 @@ struct  bpq() { // bucket based priority queue
 	void insert(NodeID v, Dist k) {
 		assert(!contains(v));
 		assert(0 <= k); assert(k <= nSentinel);
-		Node& nv = nodes[v]; Bucket& bv = b[k];
-		NodeID w = bv.first; Node& nw = nodes[w];
+		Node& nv = nodes[v];
+		NodeID w = first[k]; Node& nw = nodes[w];
 
 		nv.bpq(Next) = w;
 		nv.bpq(Prev) = nSentinel;
 		nw.bpq(Prev) = v;
-		bv.first = v;
+		first[k] = v;
 
 		if (k < dmin)
 			dmin = k;
 		if (k > dmax)
 			dmax = k;
+
+#if defined(USE_STATS_COUNT) && bpq() == listPivots
+		p.c_pivotsInserted++;
+#endif
 	}
 
 	void remove(NodeID v) {
 		assert(contains(v));
-		Node& nv = nodes[v]; Bucket& bv = b[nv.d];
+		Node& nv = nodes[v]; Dist d = nv.d;
 		NodeID u = nv.bpq(Prev); Node& nu = nodes[u];
 		NodeID w = nv.bpq(Next); Node& nw = nodes[w];
 
-		if (bv.first == v) {
-			bv.first = w;
+		if (first[d] == v) {
+			first[d] = w;
 			nw.bpq(Prev) = nSentinel;
 		}
 		else {
@@ -76,6 +78,10 @@ struct  bpq() { // bucket based priority queue
 		}
 
 		nv.bpq(Prev) = nv.bpq(Next) = UNDEF_NODE;
+
+#if defined(USE_STATS_COUNT) && bpq() == listPivots
+		p.c_pivotsDeleted++;
+#endif
 	}
 
 	void update(NodeID v, int k) {
@@ -91,12 +97,12 @@ struct  bpq() { // bucket based priority queue
 	}
 
 	NodeID extractMin() {
-		while (b[dmin].first == nSentinel && dmin <= dmax)
+		while (first[dmin] == nSentinel && dmin <= dmax)
 			dmin++;
 		if (dmin <= dmax) {
-			NodeID v = b[dmin].first;
+			NodeID v = first[dmin];
 			remove(v);
-			assert(b[dmin].first != v);
+			assert(first[dmin] != v);
 			return v;
 		}
 		else {
@@ -105,10 +111,10 @@ struct  bpq() { // bucket based priority queue
 	}
 
 	NodeID peekMin() {
-		while (b[dmin].first == nSentinel && dmin <= dmax)
+		while (first[dmin] == nSentinel && dmin <= dmax)
 			dmin++;
 		if (dmin <= dmax) {
-			return b[dmin].first;
+			return first[dmin];
 		}
 		else {
 			return UNDEF_NODE;
@@ -118,6 +124,31 @@ struct  bpq() { // bucket based priority queue
 	bool empty() {
 		return peekMin() == UNDEF_NODE;
 	}
+
+	void flush() {
+		forAllNodes(u) {
+			if (contains(u))
+				remove(u);
+		}
+	}
+
+#if bpq() == listRelabel
+	// returns true if listRelabel is empty (or does not need to be processed further in the lazy relabeling case)
+	bool processed() {
+		while (first[dmin] == nSentinel && dmin <= dmax) {
+	#if defined(LAZY_RELABEL)
+			if (dmin > dmin) return true;
+	#endif
+			dmin++;
+		}
+		if (dmin <= dmax) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
+#endif
 
 } bpq();
 
