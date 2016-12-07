@@ -24,15 +24,9 @@ double timer();
 #define IN_T 1
 
 #define GGT_RELABEL // Use GGT algorithm (relabeling)
-#define LAZY_RELABEL // use lazy relabeling heuristic
-//#define GAP_RELABEL // use gap relabeling heuristic
+//#define LAZY_RELABEL // use lazy relabeling heuristic
+#define GAP_RELABEL // use gap relabeling heuristic
 //#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
-
-#define forAllNodes(u) for (NodeID u = 0; u <= nMax; u++)
-#define forAllOutArcs(u, i, iStop) if (nodes[u].first != UNDEF_ARC)\
-		for (NodeID i = nodes[u].first, iStop = nodes[u+1].first; i != iStop; i++)
-#define forAllArcs(u, i, iStop) forAllNodes(u)\
-		forAllOutArcs(u, i, iStop)
 
 
 class NetworkMaxFlowSimplex {
@@ -49,12 +43,18 @@ public:
 	NodeID source; // source node pointer
 	NodeID sink; // sink node pointer
 	Flow flow; // flow value
-	NodeID nSentinel; // end of the node list marker
+	NodeID nSentinel; // end of the node list marker == nMax+1
 
-	std::vector<BucketToRelabel> bToRelabel; // for each level d first node to relabel
-	Dist bToRelabelMinD, bToRelabelMaxD;
-	std::vector<BucketPivot> bPivots; // for each level d first pivot arc
-	Dist bPivotsMinD, bPivotsMaxD;
+#define bpq(name) listPivots##name
+#include "bpq.hpp"
+#undef bpq
+#define bpq(name) listRelabel##name
+#include "bpq.hpp"
+#undef bpq
+#define bpq(name) list##name
+#include "bpq.hpp"
+#undef bpq
+
 
 	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
 	~NetworkMaxFlowSimplex();
@@ -97,27 +97,23 @@ private:
 	void constructorDimacs(std::istream& is);
 	void constructorDimacsFail(int lineNum, int code);
 
-	bool pivotsContains(NodeID v);
-	void pivotsInsert(NodeID v, Dist d);
-	ArcID pivotsExtractMin();
-	NodeID pivotsDelete(NodeID v);
+	ArcID listPivotsExtractMin();
 
 #if defined(GGT_RELABEL)
 	NodeID globalRelabelWork;
 	double globalRelabelFreq;
 	NodeID globalRelabelThreshold;
 
-	bool toRelabelContains(NodeID v);
-	void toRelabelInsert(NodeID v, Dist d);
-	NodeID toRelabelDelete(NodeID v);
-	NodeID toRelabelExtractMin();
-	bool toRelabelEmpty();
-	bool toRelabelProcessed();
+	bool listRelabelProcessed();
 
 	bool makeCur(NodeID v);
 	void relabel(NodeID v);
 	void toRelabelFlush();
 	void doGlobalRelabel();
+
+#if defined(GAP_RELABEL)
+	void gap(Dist k);
+#endif
 #endif
 
 	void getSubtreeLastNode(NodeID u, NodeID& uLast);

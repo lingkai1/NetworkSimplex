@@ -45,19 +45,23 @@ struct Node {
 	int tree; // current tree (simplex multiplier)
 
 
-	// doubly linked to allow deletion inside
-	NodeID bToRelabelNext, bToRelabelPrev;
-	NodeID bPivotsNext, bPivotsPrev;
+	// doubly linked to allow simple deletion
+	NodeID listPivotsPrev, listPivotsNext;
+	NodeID listRelabelPrev, listRelabelNext;
+	NodeID listPrev, listNext;
 
 };
 
-// push on one side pop on the other for FIFO order
-struct BucketToRelabel {
-	NodeID first, last;
+
+struct Bucket {
+	NodeID first;
 };
 
-struct BucketPivot {
-	NodeID first, last;
-};
+#define forAllNodes(u) for (NodeID u = 0; u < nSentinel; u++)
+#define forAllOutArcs(u, i, iStop) if (nodes[u].first != UNDEF_ARC)\
+		for (NodeID i = nodes[u].first, iStop = nodes[u+1].first; i != iStop; i++)
+#define forAllArcs(u, i, iStop) forAllNodes(u)\
+		forAllOutArcs(u, i, iStop)
+
 
 #endif

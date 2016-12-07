@@ -31,8 +31,10 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 	if (verbose >= 1) cout << "Arcs in file: " << m << endl;
 
 	n = nMax+1;
+	nSentinel = nMax+1;
 	arcs.reserve(2*m);
-	nodes.resize(n+1);
+	nodes.resize(nSentinel+1);
+
 
 	forAllNodes(u) {
 		Node& node = nodes[u];
@@ -144,9 +146,9 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 			nodes[u].first = i;
 	}
 	// sentinel node
-	nSentinel = nMax+1;
 	Node& node = nodes[nSentinel];
 	node.first = m;
+	node.d = nSentinel;
 	for (u = nSentinel; u >= 0; u--) {
 		if (nodes[u].first == UNDEF_ARC)
 			nodes[u].first = nodes[u+1].first;

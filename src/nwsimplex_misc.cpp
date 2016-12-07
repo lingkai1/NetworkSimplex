@@ -10,7 +10,8 @@ void NetworkMaxFlowSimplex::initialize() {
 }
 
 // constructors
-NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format, int verbose) {
+NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format, int verbose) : listPivots(*this), listRelabel(*this), list(*this)
+{
 	initialize();
 	this->verbose = verbose;
 #ifdef USE_STATS_TIME
