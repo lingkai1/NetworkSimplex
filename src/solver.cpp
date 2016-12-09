@@ -332,7 +332,7 @@ void NetworkMaxFlowSimplex::solve() {
 
 #if defined(GGT_RELABEL)
 
-			nodes[v].cur = nodes[v].first; makeCur(v);
+			//nodes[v].cur = nodes[v].first; makeCur(v);
 			makeCur(y);
 			while (!listRelabel.processed())
 				relabel(listRelabel.extractMin());
@@ -382,7 +382,7 @@ void NetworkMaxFlowSimplex::solve() {
 
 #if defined(GGT_RELABEL)
 
-			nodes[v].cur = nodes[v].first; makeCur(v);
+			//nodes[v].cur = nodes[v].first; makeCur(v);
 			makeCur(y);
 			while (!listRelabel.processed())
 				relabel(listRelabel.extractMin());
@@ -399,7 +399,7 @@ void NetworkMaxFlowSimplex::solve() {
 
 #if defined(GGT_RELABEL)
 
-			nodes[v].cur = nodes[v].first; makeCur(v);
+			//nodes[v].cur = nodes[v].first; makeCur(v);
 			makeCur(y);
 			while (!listRelabel.processed())
 				relabel(listRelabel.extractMin());
