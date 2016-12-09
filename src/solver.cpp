@@ -260,16 +260,6 @@ void NetworkMaxFlowSimplex::solve() {
 		y = axy.head;
 		if (verbose >= 1) cout << "Bottleneck (leaving) xy arc: " << x << "->" << y << " delta: " << delta << endl;
 
-		/*if (vw == 455138) {
-			cerr<<"vw=="<<455138<<endl;
-			cerr<<"v:"<<v<<endl;
-			cerr<<"w:"<<w<<endl;
-			cerr<<"x:"<<x<<endl;
-			cerr<<"y:"<<y<<endl;
-			cerr<<"xy:"<<xy<<endl;
-			cerr<<"tree(xy):"<<(xyTree==IN_S?"S":xyTree==IN_T?"T":"SxT")<<endl;
-		}*/
-
 
 		if (verbose >= 1) cout << "Augmenting flow..." << endl;
 		// pivot (v,w)
@@ -343,8 +333,7 @@ void NetworkMaxFlowSimplex::solve() {
 #if defined(GGT_RELABEL)
 
 			nodes[v].cur = nodes[v].first; makeCur(v);
-			makeCur(y); // only y can be made non current (if its current arc was xy (yx))
-			//globalRelabelWork = 0;
+			makeCur(y);
 			while (!listRelabel.processed())
 				relabel(listRelabel.extractMin());
 #endif
@@ -395,7 +384,6 @@ void NetworkMaxFlowSimplex::solve() {
 
 			nodes[v].cur = nodes[v].first; makeCur(v);
 			makeCur(y);
-			//globalRelabelWork = 0;
 			while (!listRelabel.processed())
 				relabel(listRelabel.extractMin());
 #endif
@@ -413,7 +401,6 @@ void NetworkMaxFlowSimplex::solve() {
 
 			nodes[v].cur = nodes[v].first; makeCur(v);
 			makeCur(y);
-			//globalRelabelWork = 0;
 			while (!listRelabel.processed())
 				relabel(listRelabel.extractMin());
 #endif
@@ -673,8 +660,6 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	listPivots.update(v, newD);
 	dc[nv.d]--; dc[newD]++;
 	nv.d = newD; // increase key of v
-
-	//if (v == 81801) { cerr<<"relabel(81801) from d="<<oldD<<" to d="<<newD<<endl;assert(checkValidCurArc(v)); }
 
 	if (verbose >= 3) cout<<v<<" (d="<<nodes[v].d<<") relabeled now current to "<<arcs[nv.cur].head<<endl;
 	//After relabel(v) increases d(v), we check all arcs (v,u). If u was current before the relabeling and cur(u) = (v,u), we make u non-current.
