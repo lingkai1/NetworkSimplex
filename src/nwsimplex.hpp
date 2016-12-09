@@ -25,9 +25,9 @@ double timer();
 
 #define GGT_RELABEL // Use GGT algorithm (enable relabeling)
 #ifdef GGT_RELABEL
-#define GLOBAL_RELABEL // use global update heuristic
-#define LAZY_RELABEL // use lazy relabeling heuristic
-#define GAP_RELABEL // use gap relabeling heuristic
+//#define GLOBAL_RELABEL // use global update heuristic
+//#define LAZY_RELABEL // use lazy relabeling heuristic
+//#define GAP_RELABEL // use gap relabeling heuristic
 #endif
 //#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
 
@@ -106,14 +106,17 @@ private:
 	NodeID globalRelabelWork;
 	double globalRelabelFreq;
 	NodeID globalRelabelThreshold;
-	void doGlobalRelabel();
 #endif
+	void doGlobalRelabel();
+
 	bool makeCur(NodeID v);
 	void relabel(NodeID v);
 #if defined(GAP_RELABEL)
 	void gap(Dist k);
 #endif
 #endif
+
+	bool checkValidCurArc(NodeID v);
 
 
 #include "dfsbfs.hpp"

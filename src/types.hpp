@@ -15,7 +15,7 @@ typedef long long ArcID;
 #define UNDEF_ARC (ArcID)-1
 
 typedef NodeID Dist;
-#define INF_DIST (Dist)1000000000;
+#define INF_DIST (Dist)1000000000
 
 struct Arc;
 struct Node;
