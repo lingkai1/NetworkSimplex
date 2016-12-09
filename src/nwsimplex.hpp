@@ -26,8 +26,8 @@ double timer();
 #define GGT_RELABEL // Use GGT algorithm (enable relabeling)
 #ifdef GGT_RELABEL
 #define GLOBAL_RELABEL // use global update heuristic
-//#define LAZY_RELABEL // use lazy relabeling heuristic
-//#define GAP_RELABEL // use gap relabeling heuristic
+#define LAZY_RELABEL // use lazy relabeling heuristic
+#define GAP_RELABEL // use gap relabeling heuristic
 #endif
 //#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
 

@@ -733,6 +733,7 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 		Node& nu = nodes[u];
 		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
 		NodeID v = auv.head; Node& nv = nodes[v];
+		//if (u==sink) return false;
 		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
 			if (headColor == COLOR_WHITE) {
 				listPivots.update(v, nu.d + 1);
@@ -745,32 +746,13 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 					nv.cur = vu;
 				}
 			}
-			return u != sink; // do not search further than sink
+			return true;
+			//return u != sink; // do not search further than sink // gives bad labeling
 		}
 		else
 			return false;
 	},
 	color);
-
-
-	/*forAllOutArcs(sink, uv, is) {
-		Node& nu = nodes[sink];
-		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
-		NodeID v = auv.head; Node& nv = nodes[v];
-		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
-			if (nv.d > nu.d + 1) {
-				listPivots.update(v, nu.d + 1);
-				dc[nv.d]--; dc[nu.d + 1]++;
-				nv.d = nu.d + 1;
-				nv.cur = vu;
-			}
-			else if (nv.d == nu.d + 1) {
-				if (nv.cur > vu) {
-					nv.cur = vu;
-				}
-			}
-		}
-	}*/
 
 	// check current arcs are correct after bfs
 	forAllNodes(v) assert(checkValidCurArc(v));
