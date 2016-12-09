@@ -567,15 +567,17 @@ bool NetworkMaxFlowSimplex::checkValidCurArc(NodeID v) {
 		Arc& avu = arcs[vu]; NodeID u = avu.head; Node& nu = nodes[u];
 		ArcID uv = avu.rev; Arc& auv = arcs[uv];
 		Dist luv = isResidualOrTreeArc(nu, nv, uv, vu, auv) ? 1 : INF_DIST;
-		if (nv.d > nu.d + luv) {
-			r = false;
-			cerr<<"invalid labeling check for (u,v)  vu="<<vu<<endl;
-			cerr<<"d(v="<<v<<")="<<nv.d<<" > "<<"d(u="<<u<<")="<<nu.d<<" + "<<luv<<endl;
-		}
-		if (nv.d == nu.d + luv && vu < nv.cur) {
-			r = false;
-			cerr<<"invalid current arc nv.cur="<<nv.cur<<" > vu="<<vu<<" but"<<endl;
-			cerr<<"d(v="<<v<<")="<<nv.d<<" == "<<"d(u="<<u<<")="<<nu.d<<" + "<<luv<<endl;
+		if (u != sink) {
+			if (nv.d > nu.d + luv) {
+				r = false;
+				cerr<<"invalid labeling check for (u,v)  vu="<<vu<<endl;
+				cerr<<"d(v="<<v<<")="<<nv.d<<" > "<<"d(u="<<u<<")="<<nu.d<<" + "<<luv<<endl;
+			}
+			if (nv.d == nu.d + luv && vu < nv.cur) {
+				r = false;
+				cerr<<"invalid current arc nv.cur="<<nv.cur<<" > vu="<<vu<<" but"<<endl;
+				cerr<<"d(v="<<v<<")="<<nv.d<<" == "<<"d(u="<<u<<")="<<nu.d<<" + "<<luv<<endl;
+			}
 		}
 	}
 	if (!r) fflush(stderr);
@@ -732,7 +734,7 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
 		NodeID v = auv.head; Node& nv = nodes[v];
 		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
-			if (headColor == COLOR_WHITE || nv.d > nu.d + 1) {
+			if (headColor == COLOR_WHITE) {
 				listPivots.update(v, nu.d + 1);
 				dc[nv.d]--; dc[nu.d + 1]++;
 				nv.d = nu.d + 1;
@@ -751,7 +753,7 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 	color);
 
 
-	forAllOutArcs(sink, uv, is) {
+	/*forAllOutArcs(sink, uv, is) {
 		Node& nu = nodes[sink];
 		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
 		NodeID v = auv.head; Node& nv = nodes[v];
@@ -768,7 +770,7 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 				}
 			}
 		}
-	}
+	}*/
 
 	// check current arcs are correct after bfs
 	forAllNodes(v) assert(checkValidCurArc(v));
