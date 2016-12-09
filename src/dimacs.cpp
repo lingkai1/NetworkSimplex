@@ -162,7 +162,7 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 
 	if (verbose >= 1) cout << "n: " << n << " m: " << m << endl;
 
-	if (verbose >= 2) {
+	if (verbose >= 4) {
 		forAllArcs(u, i, is) {
 			Arc& arc = arcs[i];
 			cout << "Arc: " << i << " (" << u << ", " << arc.head << ") c: " << arc.resCap << " rev: " << arc.rev << endl;

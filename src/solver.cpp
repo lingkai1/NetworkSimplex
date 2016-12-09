@@ -732,7 +732,7 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
 		NodeID v = auv.head; Node& nv = nodes[v];
 		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
-			if (headColor == COLOR_WHITE && nv.d > nu.d + 1) {
+			if (headColor == COLOR_WHITE || nv.d > nu.d + 1) {
 				listPivots.update(v, nu.d + 1);
 				dc[nv.d]--; dc[nu.d + 1]++;
 				nv.d = nu.d + 1;
