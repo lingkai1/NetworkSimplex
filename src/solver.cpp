@@ -20,7 +20,7 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 
 	vector<int> color(n); // todo: to optimize (reuse another field maybe)
 	fill(color.begin(), color.end(), COLOR_WHITE);
-	if (verbose >= 1) cout << "Initial BFS" << endl;
+	if (verbose >= 2) cout << "Initial BFS" << endl;
 	bfs(source,
 			[&](NodeID u){
 		// pre node
@@ -64,7 +64,7 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 	NodeID prevu = source;
 	nodes[source].prev = UNDEF_NODE;
 	fill(color.begin(), color.end(), COLOR_WHITE);
-	if (verbose >= 1) cout << "Initial DFS" << endl;
+	if (verbose >= 2) cout << "Initial DFS" << endl;
 	dfs_i(source,
 			[&](NodeID u){
 		// pre node
@@ -160,6 +160,8 @@ void NetworkMaxFlowSimplex::solve() {
 
 	flow = 0;
 
+	if (verbose >= 1) cout << "Building initial basis..." << endl;
+
 #ifdef USE_STATS_TIME
 	t_buildInitialBasis = timer();
 #endif
@@ -171,6 +173,8 @@ void NetworkMaxFlowSimplex::solve() {
 #ifdef USE_STATS_TIME
 	t_solve = timer();
 #endif
+
+	if (verbose >= 1) cout << "Simplex method..." << endl;
 
 	// main loop
 	while (true) {
@@ -188,7 +192,7 @@ void NetworkMaxFlowSimplex::solve() {
 			printT();
 		}
 
-		if (verbose >= 1) cout << "Selecting Pivot..." << endl;
+		if (verbose >= 2) cout << "Selecting Pivot..." << endl;
 		NodeID v, w;
 		ArcID vw, wv;
 		vw = extractMinPivot(); // extract a pivot with min label
@@ -212,12 +216,12 @@ void NetworkMaxFlowSimplex::solve() {
 
 		assert(nodes[v].d < nSentinel);
 
-		if (verbose >= 1) cout << "Pivot (entering) vw arc: " << v << "->" << w << endl;
+		if (verbose >= 2) cout << "Pivot (entering) vw arc: " << v << "->" << w << endl;
 
 		assert(nodes[v].tree == IN_S);
 		assert(nodes[w].tree == IN_T);
 
-		if (verbose >= 1) cout << "Searching bottleneck..." << endl;
+		if (verbose >= 2) cout << "Searching bottleneck..." << endl;
 		NodeID u;
 		Cap delta;
 
@@ -262,10 +266,10 @@ void NetworkMaxFlowSimplex::solve() {
 		Arc& ayx = arcs[yx];
 		x = ayx.head;
 		y = axy.head;
-		if (verbose >= 1) cout << "Bottleneck (leaving) xy arc: " << x << "->" << y << " delta: " << delta << endl;
+		if (verbose >= 2) cout << "Bottleneck (leaving) xy arc: " << x << "->" << y << " delta: " << delta << endl;
 
 
-		if (verbose >= 1) cout << "Augmenting flow..." << endl;
+		if (verbose >= 2) cout << "Augmenting flow..." << endl;
 		// pivot (v,w)
 		avw.resCap -= delta;
 		awv.resCap += delta;
@@ -300,9 +304,9 @@ void NetworkMaxFlowSimplex::solve() {
 		assert(axy.resCap == 0);
 
 
-		if (verbose >= 1) cout << "Updating basis..." << endl;
+		if (verbose >= 2) cout << "Updating basis..." << endl;
 		if (xyTree == IN_S) {
-			if (verbose >= 1) cout << "xy in S => T grows" << endl;
+			if (verbose >= 2) cout << "xy in S => T grows" << endl;
 
 			// Q the subtree rooted at y in S moves from S to T
 			// R will represent Q rooted at v in T
@@ -346,7 +350,7 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 		}
 		else if (xyTree == IN_T) {
-			if (verbose >= 1) cout << "xy in T => S grows" << endl;
+			if (verbose >= 2) cout << "xy in T => S grows" << endl;
 
 			// Q the subtree rooted at x in T moves from T to S
 			// R will represent Q rooted at w in S
@@ -396,7 +400,7 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 		}
 		else {
-			if (verbose >= 1) cout << "xy == vw => Unchanged basis" << endl;
+			if (verbose >= 2) cout << "xy == vw => Unchanged basis" << endl;
 			// pivot is the leaving arc. keep the same basis
 			if (!hasOutPivots(v))
 				listPivots.remove(v);

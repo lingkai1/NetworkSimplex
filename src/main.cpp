@@ -45,16 +45,18 @@ struct Main {
 
 		// build network simplex solver
 		cout << "Network Simplex" << endl;
-		NetworkMaxFlowSimplex nw(cin, NetworkMaxFlowSimplex::FORMAT_DIMACS, 0);
+		cout << "Parsing" << endl;
+		NetworkMaxFlowSimplex nw(cin, NetworkMaxFlowSimplex::FORMAT_DIMACS, 1);
 
-		cout << "Solving" << endl;
+		cout << "Solving..." << endl;
 		// call solver
 
 		nw.solve();
 
 		// output results
+		cout << endl;
 		cout << "Max Flow: " << nw.flow << endl;
-
+		cout << endl;
 #ifdef USE_STATS_TIME
 		nw.printTimeStats();
 #endif
