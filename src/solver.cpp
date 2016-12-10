@@ -562,7 +562,7 @@ void NetworkMaxFlowSimplex::changeRoot(NodeID q, NodeID r, NodeID& rLast) {
 
 bool NetworkMaxFlowSimplex::checkValidCurArc(NodeID v) {
 	bool r = true;
-	forAllOutArcs(v, vu, is) {
+	/*forAllOutArcs(v, vu, is) {
 		Node& nv = nodes[v];
 		Arc& avu = arcs[vu]; NodeID u = avu.head; Node& nu = nodes[u];
 		ArcID uv = avu.rev; Arc& auv = arcs[uv];
@@ -580,7 +580,7 @@ bool NetworkMaxFlowSimplex::checkValidCurArc(NodeID v) {
 			}
 		}
 	}
-	if (!r) fflush(stderr);
+	if (!r) fflush(stderr);*/
 	return r;
 }
 
@@ -710,7 +710,7 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 
 
 // do a global update
-// do a BFS to compute exact d labels (BFS = dijkstra in undirected graphs)
+// do a BFS to compute exact d labels (BFS = dijkstra in unweighted graphs)
 void NetworkMaxFlowSimplex::doGlobalRelabel() {
 #ifdef USE_STATS_COUNT
 	c_globalupdate++;
@@ -733,21 +733,21 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 		Node& nu = nodes[u];
 		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
 		NodeID v = auv.head; Node& nv = nodes[v];
-		//if (u==sink) return false;
+
+		if (headColor == COLOR_WHITE) {
+			listPivots.update(v, nu.d + 1);
+			dc[nv.d]--; dc[nu.d + 1]++;
+			nv.d = nu.d + 1;
+			nv.cur = vu;
+		}
 		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
-			if (headColor == COLOR_WHITE) {
-				listPivots.update(v, nu.d + 1);
-				dc[nv.d]--; dc[nu.d + 1]++;
-				nv.d = nu.d + 1;
-				nv.cur = vu;
-			}
-			else if (nv.d == nu.d + 1) {
+			if (headColor != COLOR_WHITE && nv.d == nu.d + 1) {
 				if (nv.cur > vu) {
 					nv.cur = vu;
 				}
 			}
 			return true;
-			//return u != sink; // do not search further than sink // gives bad labeling
+			//return v != sink; // do not search further than sink
 		}
 		else
 			return false;
