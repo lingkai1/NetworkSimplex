@@ -58,6 +58,7 @@ struct Main {
 #ifdef USE_STATS_TIME
 		nw.printTimeStats();
 #endif
+		cout << endl;
 #ifdef USE_STATS_COUNT
 		nw.printCountStats();
 #endif

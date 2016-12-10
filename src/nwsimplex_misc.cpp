@@ -40,6 +40,7 @@ void NetworkMaxFlowSimplex::printTimeStats() {
 	cout << "Parsing time: " << t_parse << " s" << endl;
 	cout << "Build initial basis time: " << t_buildInitialBasis << " s" << endl;
 	cout << "Solving time: " << t_solve << " s" << endl;
+	cout << "Total solving time: " << t_total << " s" << endl;
 }
 #endif
 

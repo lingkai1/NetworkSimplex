@@ -143,7 +143,7 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 // main network simplex function
 void NetworkMaxFlowSimplex::solve() {
 #ifdef USE_STATS_TIME
-	t_solve = timer();
+	t_total = timer();
 #endif
 #ifdef USE_STATS_COUNT
 	c_basisIter = 0;
@@ -168,6 +168,9 @@ void NetworkMaxFlowSimplex::solve() {
 	t_buildInitialBasis = timer() - t_buildInitialBasis;
 #endif
 
+#ifdef USE_STATS_TIME
+	t_solve = timer();
+#endif
 
 	// main loop
 	while (true) {
@@ -196,6 +199,7 @@ void NetworkMaxFlowSimplex::solve() {
 
 #ifdef USE_STATS_TIME
 			t_solve = timer() - t_solve;
+			t_total= timer() - t_total;
 #endif
 			return;
 		}

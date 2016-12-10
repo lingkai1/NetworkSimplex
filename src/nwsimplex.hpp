@@ -127,6 +127,7 @@ private:
 	double t_parse;
 	double t_buildInitialBasis;
 	double t_solve;
+	double t_total;
 #endif
 	// counters
 #ifdef USE_STATS_COUNT
