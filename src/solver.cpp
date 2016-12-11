@@ -753,7 +753,6 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 
 	// do BFS from source to compute exact labels
 	nodes[source].d = 0;
-	cerr<<"BFS"<<endl;
 
 	vector<int> color(nSentinel);
 	fill(color.begin(), color.end(), COLOR_WHITE);
@@ -766,22 +765,23 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 		Node& nu = nodes[u];
 		Arc& auv = arcs[uv]; ArcID vu = auv.rev;
 		NodeID v = auv.head; Node& nv = nodes[v];
-		//if (u == 73654) cerr<<"u:73654 -> v:"<<v<<endl;
-		//if (vu == 726134) cerr<<"vu:"<<vu<<" : "<<isResidualOrTreeArc(nu, nv, uv, vu, auv)<<endl;
-		if (headColor == COLOR_WHITE && isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
+		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
+			if (headColor == COLOR_WHITE) {
 
-			listPivots.update(v, nu.d + 1);
-			dc[nv.d]--; dc[nu.d + 1]++;
-			nv.d = nu.d + 1;
-			nv.cur = vu;
-			//if (vu == 1589) cerr<<"1589: "<<"d(v="<<v<<"):="<<nv.d<<endl;
-		}
-		if (headColor != COLOR_WHITE && isResidualOrTreeArc(nu, nv, uv, vu, auv) && nv.d == nu.d + 1) {
-			if (nv.cur > vu) {
+				listPivots.update(v, nu.d + 1);
+				dc[nv.d]--; dc[nu.d + 1]++;
+				nv.d = nu.d + 1;
 				nv.cur = vu;
 			}
+			else if (nv.d == nu.d + 1) {
+				if (nv.cur > vu) {
+					nv.cur = vu;
+				}
+			}
+			return true; // BFS in pseudo-residual graph
 		}
-		return isResidualOrTreeArc(nu, nv, uv, vu, auv); // BFS in pseudo-residual graph
+		else
+			return false;
 	},
 	color);
 	forAllNodes(v) if (color[v] == COLOR_WHITE) {
