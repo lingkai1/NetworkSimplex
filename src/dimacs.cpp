@@ -30,7 +30,7 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 	if (!(ss >> m)) return constructorDimacsFail(lineNum, 2);
 	if (verbose >= 1) cout << "Arcs in file: " << m << endl;
 
-	n = nMax+1;
+	n = nMax;
 	nSentinel = nMax+1;
 	arcs.reserve(2*m);
 	nodes.resize(nSentinel+1);
