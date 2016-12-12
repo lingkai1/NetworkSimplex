@@ -2,7 +2,8 @@
 #include <fstream>
 #include <sstream>
 #include <getopt.h>
-#include "nwsimplex.hpp"
+
+#include "nmfs.hpp"
 
 using namespace std;
 
@@ -45,24 +46,24 @@ struct Main {
 
 		// build network simplex solver
 		cout << "Network Max Flow Simplex" << endl;
-		NetworkMaxFlowSimplex nw(cin, NetworkMaxFlowSimplex::FORMAT_DIMACS, 1);
+		NetworkMaxFlowSimplex nmfs(cin, NetworkMaxFlowSimplex::FORMAT_DIMACS, 1);
 
 		cout << endl;
 		cout << "Solving..." << endl;
 		// call solver
 
-		nw.solve();
+		nmfs.solve();
 
 		// output results
 		cout << endl;
-		cout << "Max Flow: " << nw.flow << endl;
+		cout << "Max Flow: " << nmfs.flow << endl;
 		cout << endl;
 #ifdef USE_STATS_TIME
-		nw.printTimeStats();
+		nmfs.printTimeStats();
 #endif
 		cout << endl;
 #ifdef USE_STATS_COUNT
-		nw.printCountStats();
+		nmfs.printCountStats();
 #endif
 
 		return mainExit(0);

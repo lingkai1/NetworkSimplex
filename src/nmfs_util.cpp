@@ -1,4 +1,4 @@
-#include "nwsimplex.hpp"
+#include "nmfs.hpp"
 
 using namespace std;
 

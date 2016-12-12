@@ -20,39 +20,39 @@ LFLAGS_OPT = -s
 # targets
 
 # parameters
-NWS_BDIR = $(BDIR)
-NWS_SDIR = $(SDIR)
-NWS_ODIR = $(ODIR)/nws
-NWS_IDIRS = 
-NWS_OBJ =
-NWS_OBJ += $(NWS_ODIR)/main.o
-NWS_OBJ += $(NWS_ODIR)/timer.o
-NWS_OBJ += $(NWS_ODIR)/nwsimplex_misc.o
-NWS_OBJ += $(NWS_ODIR)/dimacs.o
-NWS_OBJ += $(NWS_ODIR)/solver.o
-NWS_CFLAGS = $(CFLAGS_OPT)
-NWS_BIN = $(BDIR)/nwsimplex
-NWS_BIN_OBJ = $(NWS_OBJ)
-NWS_LDIRS = 
-NWS_LIBS = 
-NWS_LFLAGS = $(LFLAGS_OPT)
+NMFS_BDIR = $(BDIR)
+NMFS_SDIR = $(SDIR)
+NMFS_ODIR = $(ODIR)/nmfs
+NMFS_IDIRS = 
+NMFS_OBJ =
+NMFS_OBJ += $(NMFS_ODIR)/main.o
+NMFS_OBJ += $(NMFS_ODIR)/timer.o
+NMFS_OBJ += $(NMFS_ODIR)/nmfs_util.o
+NMFS_OBJ += $(NMFS_ODIR)/dimacs.o
+NMFS_OBJ += $(NMFS_ODIR)/solver.o
+NMFS_CFLAGS = $(CFLAGS_OPT)
+NMFS_BIN = $(BDIR)/nmfs
+NMFS_BIN_OBJ = $(NMFS_OBJ)
+NMFS_LDIRS = 
+NMFS_LIBS = 
+NMFS_LFLAGS = $(LFLAGS_OPT)
 # rules
-$(NWS_ODIR): 
-	$(MKDIR) -p $(NWS_ODIR)
-$(NWS_ODIR)/%.o: $(NWS_SDIR)/%.cpp | $(NWS_ODIR)
-	$(CPPC) $(NWS_CFLAGS) -MMD -c $< -o $@ $(NWS_IDIRS)
--include $(NWS_ODIR)/*.d
-$(NWS_BIN): $(NWS_BIN_OBJ) | $(BDIR)
-	$(CPPC) -o $(NWS_BIN) $(NWS_BIN_OBJ) $(NWS_LFLAGS) $(NWS_LIBS) $(NWS_LDIRS)
+$(NMFS_ODIR): 
+	$(MKDIR) -p $(NMFS_ODIR)
+$(NMFS_ODIR)/%.o: $(NMFS_SDIR)/%.cpp | $(NMFS_ODIR)
+	$(CPPC) $(NMFS_CFLAGS) -MMD -c $< -o $@ $(NMFS_IDIRS)
+-include $(NMFS_ODIR)/*.d
+$(NMFS_BIN): $(NMFS_BIN_OBJ) | $(BDIR)
+	$(CPPC) -o $(NMFS_BIN) $(NMFS_BIN_OBJ) $(NMFS_LFLAGS) $(NMFS_LIBS) $(NMFS_LDIRS)
 
 
 # general targets
 $(BDIR):
 	$(MKDIR) -p $(BDIR)
-all: $(NWS_BIN)
+all: $(NMFS_BIN)
 clean: cleanobj cleanbin
 cleanobj:
-	$(RM) $(NWS_OBJ) -f
+	$(RM) $(NMFS_OBJ) -f
 	$(RM) $(ODIR) -rf
 cleanbin:
-	$(RM) $(NWS_BIN) -f
+	$(RM) $(NMFS_BIN) -f

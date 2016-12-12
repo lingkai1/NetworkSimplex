@@ -1,6 +1,7 @@
-#include "misc.hpp"
 #include <sstream>
-#include "nwsimplex.hpp"
+
+#include "nmfs.hpp"
+#include "util.hpp"
 
 using namespace std;
 
@@ -116,8 +117,8 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 	delete &p;
 
 	// eliminate parallel arcs and fix reverse arcs again
-	ArcID na;
-	for (i = 0, na = 0; i < m; ) {
+	ArcID ni;
+	for (i = 0, ni = 0; i < m; ) {
 		ArcID revMin = arcs[i].rev;
 		Cap totCap = 0;
 		do {
@@ -125,19 +126,19 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 				revMin = arcs[i].rev;
 			totCap += arcs[i].resCap;
 			i++;
-		} while (i < m && tails[i] == tails[na] && arcs[i].head == arcs[na].head);
-		if (tails[na] < arcs[na].head)
-			arcs[revMin].rev = na;
+		} while (i < m && tails[i] == tails[ni] && arcs[i].head == arcs[ni].head);
+		if (tails[ni] < arcs[ni].head)
+			arcs[revMin].rev = ni;
 		else
-			arcs[arcs[na].rev].rev = na;
-		arcs[na].resCap = totCap;
-		na++;
+			arcs[arcs[ni].rev].rev = ni;
+		arcs[ni].resCap = totCap;
+		ni++;
 		if (i < m) {
-			arcs[na] = arcs[i];
-			tails[na] = tails[i];
+			arcs[ni] = arcs[i];
+			tails[ni] = tails[i];
 		}
 	}
-	m = na;
+	m = ni;
 
 	// determine first arcs
 	for (i = 0; i < m; i++) {

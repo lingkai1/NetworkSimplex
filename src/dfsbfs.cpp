@@ -2,7 +2,7 @@
 #define DFSBFS_CPP_
 // only template funcs in this file
 
-#include "nwsimplex.hpp"
+#include "nmfs.hpp"
 
 #define COLOR_WHITE 0
 #define COLOR_GREY  1

@@ -1,5 +1,5 @@
-#ifndef NWS_TYPES_H_
-#define NWS_TYPES_H_
+#ifndef NMFS_TYPES_H_
+#define NMFS_TYPES_H_
 
 #ifdef CAPACITY64
 typedef unsigned long long Cap;

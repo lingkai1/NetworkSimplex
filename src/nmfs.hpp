@@ -1,5 +1,5 @@
-#ifndef NWS_H_
-#define NWS_H_
+#ifndef NMFS_H_
+#define NMFS_H_
 
 #include "types.hpp"
 #include "assert.h"

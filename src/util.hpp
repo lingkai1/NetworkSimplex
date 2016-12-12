@@ -1,5 +1,5 @@
-#ifndef MISC_HPP_
-#define MISC_HPP_
+#ifndef UTIL_HPP_
+#define UTIL_HPP_
 
 #include <assert.h>
 
