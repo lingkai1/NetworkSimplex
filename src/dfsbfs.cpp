@@ -36,22 +36,23 @@ inline void NetworkMaxFlowSimplex::bfs(NodeID s,
 	// white: unvisited, untouched node
 	// grey:  unvisited node in queue
 	// black: visited node
+	bool leaf;
 	queuePush(s);
 	colorSet(s, COLOR_GREY);
 	while (!queueIsEmpty()) {
 		NodeID u = queuePop();
 		preProcessNode(u);
-		colorSet(u, COLOR_BLACK); // regard u as leaf by default (u's color unused for other purposes in the next lines, is used to hold this information now)
+		leaf = true; // regard u as leaf by default
 		forAllOutArcs(u, i, is) {
 			NodeID v = arcs[i].head;
 			if (processArc(u, i, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
-				colorSet(u, COLOR_GREY); // u is not a leaf
+				leaf = false; // u is not a leaf
 				queuePush(v);
 				colorSet(v, COLOR_GREY);
 			}
 		}
-		postProcessNode(u, colorGet(u) == COLOR_BLACK);
-		colorSet(u, COLOR_BLACK); // now u's black color only mean it is processed (does not mean it is necessarily a leaf)
+		postProcessNode(u, leaf);
+		colorSet(u, COLOR_BLACK);
 	}
 }
 template <
@@ -174,7 +175,7 @@ inline void NetworkMaxFlowSimplex::dfs_i(NodeID s,
 	// grey: ancestor visited node
 	// black: visited node in another branch or descendant.
 	NodeID pu, u; ArcID i;
-	bool nextLeaf;
+	bool goingDown = true;
 	u = s;
 	do {
 		if (colorGet(u) == COLOR_WHITE)
@@ -186,18 +187,18 @@ inline void NetworkMaxFlowSimplex::dfs_i(NodeID s,
 				colorSet(u, COLOR_GREY); // u has more children to explore
 				postStackPush(u, i); // save where we come from
 				u = v;
-				nextLeaf = true;
+				goingDown = true;
 				break;
 			}
 		}
 
 		if (colorGet(u) == COLOR_BLACK) { // if u has no more children to explore
 			if (!postStackIsEmpty()) {
-				postOrderNode(u, nextLeaf);
+				postOrderNode(u, goingDown);
 				postStackPop(pu, i);
 				postOrderArc(pu, i);
 				u = pu;
-				nextLeaf = false;
+				goingDown = false;
 			}
 			else break;
 		}

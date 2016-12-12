@@ -22,10 +22,7 @@ struct Node;
 
 
 struct Arc {
-	union { // use anonymous union for alternate names -> different meanings for field reuse for space optimization
-		Cap resCap; // residual capasity
-		Cap cap;
-	};
+	Cap resCap; // residual capacity
 	NodeID head; // arc head
 	ArcID rev; // reverse arc
 };

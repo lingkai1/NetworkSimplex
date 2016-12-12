@@ -120,7 +120,7 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 	}
 
 #if defined(GLOBAL_RELABEL)
-	globalRelabelFreq = 0.2;
+	globalRelabelFreq = 1.0;
 	globalRelabelThreshold = nSentinel;
 	globalRelabelWork = 0;
 #endif
@@ -213,7 +213,7 @@ void NetworkMaxFlowSimplex::solve() {
 		w = avw.head;
 
 		assert(nodes[v].d < n);
-		assert(nodes[w].d == nodes[v].d + 1);
+		//assert(nodes[w].d == nodes[v].d + 1);
 
 		if (verbose >= 2) cout << "Pivot (entering) vw arc: " << v << "->" << w << endl;
 
@@ -386,6 +386,9 @@ void NetworkMaxFlowSimplex::solve() {
 
 #if defined(GGT_RELABEL)
 			makeCur(y);
+#if defined(LAZY_RELABEL)
+			//forAllSubTree(v, [&](NodeID u){makeCur(u);});
+#endif
 			while (!listRelabel.processed())
 				relabel(listRelabel.extractMin());
 #endif
