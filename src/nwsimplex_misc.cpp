@@ -50,11 +50,16 @@ void NetworkMaxFlowSimplex::printCountStats() {
 	cout << "S growths: " << c_basisGrowS << endl;
 	cout << "T growths: " << c_basisGrowT << endl;
 	cout << "Basis unchanged: " << c_basisNoChange << endl;
+	cout << "Size of trees moved from S to T: " << c_StoTMoves << endl;
+	cout << "Size of trees moved from T to S: " << c_TtoSMoves << endl;
+	cout << "Total length of augmenting paths: " << c_augPathTotalLen << endl;
 	cout << "Pivots inserted: " << c_pivotsInserted << endl;
 	cout << "Pivots deleted: " << c_pivotsDeleted << endl;
 	cout << "Make current calls: " << c_makeCur << endl;
 	cout << "Relabel calls: " << c_relabel << endl;
-	cout << "Global updates: " << c_globalupdate << endl;
+	cout << "Relabel arc scans: " << c_relabelArcScans << endl;
+	cout << "Global updates: " << c_globalUpdate << endl;
+	cout << "Global updates arc scans: " << c_guArcScans << endl;
 	cout << "Gaps: " << c_gap << endl;
 }
 #endif

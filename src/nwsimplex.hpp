@@ -137,11 +137,16 @@ private:
 	long long c_basisGrowS;
 	long long c_basisGrowT;
 	long long c_basisNoChange;
+	long long c_StoTMoves;
+	long long c_TtoSMoves;
+	long long c_augPathTotalLen;
 	long long c_pivotsInserted;
 	long long c_pivotsDeleted;
 	long long c_makeCur;
 	long long c_relabel;
-	long long c_globalupdate;
+	long long c_relabelArcScans;
+	long long c_globalUpdate;
+	long long c_guArcScans;
 	long long c_gap;
 #endif
 };

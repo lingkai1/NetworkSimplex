@@ -148,11 +148,16 @@ void NetworkMaxFlowSimplex::solve() {
 	c_basisGrowS = 0;
 	c_basisGrowT = 0;
 	c_basisNoChange = 0;
+	c_StoTMoves = 0;
+	c_TtoSMoves = 0;
+	c_augPathTotalLen = 0;
 	c_pivotsInserted = 0;
 	c_pivotsDeleted = 0;
 	c_makeCur = 0;
 	c_relabel = 0;
-	c_globalupdate = 0;
+	c_relabelArcScans = 0;
+	c_globalUpdate = 0;
+	c_guArcScans = 0;
 	c_gap = 0;
 #endif
 
@@ -244,7 +249,13 @@ void NetworkMaxFlowSimplex::solve() {
 				xyTree = IN_S;
 			}
 			u = p;
+#ifdef USE_STATS_COUNT
+			c_augPathTotalLen++;
+#endif
 		}
+#ifdef USE_STATS_COUNT
+			c_augPathTotalLen++;
+#endif
 		// path w->t
 		u = w;
 		while (u != sink) {
@@ -257,6 +268,9 @@ void NetworkMaxFlowSimplex::solve() {
 				xyTree = IN_T;
 			}
 			u = p;
+#ifdef USE_STATS_COUNT
+			c_augPathTotalLen++;
+#endif
 		}
 
 
@@ -342,6 +356,7 @@ void NetworkMaxFlowSimplex::solve() {
 				relabel(listRelabel.extractMin());
 #endif
 #ifdef USE_STATS_COUNT
+			c_StoTMoves += nodes[v].stSize;
 			c_basisGrowT++;
 #endif
 		}
@@ -386,13 +401,11 @@ void NetworkMaxFlowSimplex::solve() {
 
 #if defined(GGT_RELABEL)
 			makeCur(y);
-#if defined(LAZY_RELABEL)
-			//forAllSubTree(v, [&](NodeID u){makeCur(u);});
-#endif
 			while (!listRelabel.processed())
 				relabel(listRelabel.extractMin());
 #endif
 #ifdef USE_STATS_COUNT
+			c_TtoSMoves += nodes[w].stSize;
 			c_basisGrowS++;
 #endif
 		}
@@ -682,6 +695,9 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 			newD = nu.d + luv;
 			nv.cur = vu;
 		}
+#ifdef USE_STATS_COUNT
+		c_relabelArcScans++;
+#endif
 	}
 
 	if (newD <= nv.d) cerr << "For v:"<<v<<" newD:"<<newD<<" <= d(v):"<<nv.d<<endl;
@@ -748,8 +764,8 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 // do a BFS to compute exact d labels (BFS = dijkstra in unweighted graphs)
 void NetworkMaxFlowSimplex::doGlobalRelabel() {
 #ifdef USE_STATS_COUNT
-	c_globalupdate++;
-	//cout << "Global relabeling: " << c_globalupdate << endl;
+	c_globalUpdate++;
+	//cout << "Global relabeling: " << c_globalUpdate << endl;
 #endif
 
 	listRelabel.flush();
@@ -781,14 +797,18 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 					nv.cur = vu;
 				}
 			}
+#ifdef USE_STATS_COUNT
+		c_guArcScans++;
+#endif
 			return true; // BFS in pseudo-residual graph
 		}
 		else
 			return false;
 	},
 	color);
+
 	forAllNodes(v) if (color[v] == COLOR_WHITE) {
-		// stupid unreachable nodes.
+		// unreachable nodes.
 		Node& nv = nodes[v];
 		listPivots.update(v, n);
 		dc[nv.d]--; dc[n]++;
@@ -796,7 +816,7 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 	}
 
 	// check current arcs are correct after bfs
-	forAllNodes(v) if (v != source) assert(checkCurrent(v));
+	//forAllNodes(v) if (v != source) assert(checkCurrent(v));
 }
 
 
