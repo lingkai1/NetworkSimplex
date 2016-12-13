@@ -1,5 +1,5 @@
 /*#ifndef bpq
-#define bpq(a) listPivots
+#define bpq(a) qp
 #define __cplusplus 201103L // useless stuff meant to fix eclipse index errors
 #include "types.hpp"
 #include "assert.h"
@@ -44,6 +44,10 @@ struct  bpq() { // bucket based priority queue
 	void insert(NodeID v, Dist k) {
 		assert(!contains(v));
 		assert(0 <= k); assert(k <= nSentinel);
+#if defined(BPQ_CUR_T)
+		if (!p.isCurrent(v)) std::cerr<<"v:"<<v<<" d:"<<nodes[v].d<<" not current in insert()"<<std::endl;
+		assert(p.isCurrent(v));
+#endif
 		Node& nv = nodes[v];
 		NodeID w = first[k]; Node& nw = nodes[w];
 
@@ -57,7 +61,7 @@ struct  bpq() { // bucket based priority queue
 		if (k > dmax)
 			dmax = k;
 
-#if defined(USE_STATS_COUNT) && bpq() == listPivots
+#if defined(USE_STATS_COUNT) && defined(BPQ_PIVOTS_V)
 		p.c_pivotsInserted++;
 #endif
 	}
@@ -79,7 +83,7 @@ struct  bpq() { // bucket based priority queue
 
 		nv.bpq(Prev) = nv.bpq(Next) = UNDEF_NODE;
 
-#if defined(USE_STATS_COUNT) && bpq() == listPivots
+#if defined(USE_STATS_COUNT) && defined(BPQ_PIVOTS_V)
 		p.c_pivotsDeleted++;
 #endif
 	}
@@ -101,6 +105,7 @@ struct  bpq() { // bucket based priority queue
 			dmin++;
 		if (dmin <= dmax) {
 			NodeID v = first[dmin];
+			assert(v != nSentinel);
 			remove(v);
 			assert(first[dmin] != v);
 			return v;
@@ -132,12 +137,12 @@ struct  bpq() { // bucket based priority queue
 		}
 	}
 
-#if bpq() == listRelabel
-	// returns true if listRelabel is empty (or does not need to be processed further in the lazy relabeling case)
+#if defined(BPQ_RELABEL)
+	// returns true if qr is empty (or does not need to be processed further in the lazy relabeling case)
 	bool processed() {
 		while (first[dmin] == nSentinel && dmin <= dmax) {
 	#if defined(LAZY_RELABEL)
-			if (dmin > p.listPivots.dmin) {
+			if (dmin > p.qp.dmin) {
 				dmax = dmin;
 				return true;
 			}

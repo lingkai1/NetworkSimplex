@@ -14,6 +14,10 @@ typedef long long ArcID;
 #define UNDEF_NODE (NodeID)-1
 #define UNDEF_ARC (ArcID)-1
 
+#define IN_NONE -1
+#define IN_S 0
+#define IN_T 1
+
 typedef NodeID Dist;
 #define INF_DIST (Dist)1000000000
 
@@ -37,12 +41,13 @@ struct Node {
 	// (Doubly linked list in DFS order)
 	NodeID next; // next node in the tree
 	NodeID prev; // prev node in the tree
-	NodeID stSize; // size of the subtree rooted at this node
+	NodeID size; // size of the subtree rooted at this node
 	int tree; // current tree (simplex multiplier)
 
 	// doubly linked to allow simple deletion
-	NodeID listPivotsPrev, listPivotsNext;
-	NodeID listRelabelPrev, listRelabelNext;
+	NodeID qpPrev, qpNext;
+	NodeID qtPrev, qtNext;
+	NodeID qrPrev, qrNext;
 };
 
 #define forAllNodes(u) for (NodeID u = 0; u < nSentinel; u++)

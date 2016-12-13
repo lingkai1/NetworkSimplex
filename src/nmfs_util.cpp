@@ -10,7 +10,13 @@ void NetworkMaxFlowSimplex::initialize() {
 }
 
 // constructors
-NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format, int verbose) : listPivots(*this), listRelabel(*this)
+NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format, int verbose) : qr(*this)
+#if defined(USE_PIVOTS_V_QUEUE)
+, qp(*this)
+#endif
+#if defined(USE_CUR_T_QUEUE)
+, qt(*this)
+#endif
 {
 	initialize();
 	this->verbose = verbose;

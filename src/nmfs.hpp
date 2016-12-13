@@ -8,29 +8,31 @@
 #include <vector>
 #include <stack>
 #include <queue>
-#include <deque>
-#include <set>
-#include <list>
 
 #define USE_STATS_TIME
 #define USE_STATS_COUNT
 
+#define GGT_RELABEL // Use GGT algorithm (enable relabeling)
+#ifdef GGT_RELABEL
+//#define LAZY_RELABEL // use lazy relabeling heuristic
+#if defined(LAZY_RELABEL)
+//#define GLOBAL_RELABEL // use global update heuristic
+#endif
+#define GAP_RELABEL // use gap relabeling heuristic
+#endif
+
+
+//#define USE_PIVOTS_V_QUEUE
+#define USE_CUR_T_QUEUE
+
+#if defined(USE_PIVOTS_V_QUEUE)
+//#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
+#endif
+
+
 #ifdef USE_STATS_TIME
 double timer();
 #endif
-
-#define IN_NONE -1
-#define IN_S 0
-#define IN_T 1
-
-#define GGT_RELABEL // Use GGT algorithm (enable relabeling)
-#ifdef GGT_RELABEL
-//#define GLOBAL_RELABEL // use global update heuristic
-#define LAZY_RELABEL // use lazy relabeling heuristic
-#define GAP_RELABEL // use gap relabeling heuristic
-#endif
-//#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
-
 
 class NetworkMaxFlowSimplex {
 public:
@@ -49,11 +51,27 @@ public:
 	Flow flow; // flow value
 	std::vector<NodeID> dc; // for each level d maintains the number of nodes with label == d
 
-#define bpq(name) listPivots##name
+	// pivot vertex queue (vertices (of S) with at least 1 outgoing pivot)
+#if defined(USE_PIVOTS_V_QUEUE)
+#define bpq(name) qp##name
+#define BPQ_PIVOTS_V
 #include "bpq.hpp"
+#undef BPQ_PIVOTS_V
 #undef bpq
-#define bpq(name) listRelabel##name
+#endif
+	// current t vertices queue
+#if defined(USE_CUR_T_QUEUE)
+#define bpq(name) qt##name
+#define BPQ_CUR_T
 #include "bpq.hpp"
+#undef BPQ_CUR_T
+#undef bpq
+#endif
+	// to relabel queue
+#define bpq(name) qr##name
+#define BPQ_RELABEL
+#include "bpq.hpp"
+#undef BPQ_RELABEL
 #undef bpq
 
 	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
@@ -71,7 +89,7 @@ public:
 #endif
 	template <typename Op> inline void forAllSubTree(NodeID root, const Op& op) {
 		NodeID u = root;
-		for (NodeID k = 0; k < nodes[root].stSize; k++) {
+		for (NodeID k = 0; k < nodes[root].size; k++) {
 			op(u);
 			u = nodes[u].next;
 		}
@@ -101,6 +119,9 @@ private:
 	void addSubtreeAsChild(NodeID r, NodeID p, NodeID pLast, NodeID u);
 	void changeRoot(NodeID q, NodeID r, NodeID& rLast);
 
+	void setLabel(NodeID v, Dist k);
+	bool isCurrent(NodeID v);
+
 #if defined(GGT_RELABEL)
 #if defined(GLOBAL_RELABEL)
 	NodeID globalRelabelWork;
@@ -116,9 +137,9 @@ private:
 #endif
 #endif
 
+
 	bool checkValidCurArc(NodeID v);
 	bool checkCurrent(NodeID v);
-	bool checkInvariantCurrent();
 
 
 #include "dfsbfs.hpp"
