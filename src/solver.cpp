@@ -124,12 +124,7 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 
 	nodes[source].parent = UNDEF_ARC;
 
-#if defined(USE_PIVOTS_V_QUEUE)
-	qp.initialize();
-#endif
-#if defined(USE_CUR_T_QUEUE)
 	qt.initialize();
-#endif
 	qr.initialize();
 
 
@@ -141,26 +136,15 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 
 #if defined(GLOBAL_RELABEL)
 	globalRelabelFreq = 1.0;
-	globalRelabelThreshold = nSentinel;
+	globalRelabelThreshold = n;
 	globalRelabelWork = 0;
 #endif
 
 	doGlobalRelabel();
 
-#if defined(USE_PIVOTS_V_QUEUE)
-	// initialize qp
-	forAllSubTree(source, [&](NodeID u){
-		Node& nu = nodes[u];
-		if (hasOutPivots(u)) {
-			qp.insert(u, nu.d);
-		}
-	});
-#endif
-#if defined(USE_CUR_T_QUEUE)
 	// initialize qt
 	assert(isCurrent(sink));
 	qt.insert(sink, nodes[sink].d);
-#endif
 }
 
 
@@ -358,28 +342,9 @@ void NetworkMaxFlowSimplex::solve() {
 			forAllSubTree(v, [&](NodeID u){
 				Node& nu = nodes[u];
 				nu.tree = IN_T;
-#if defined(USE_CUR_T_QUEUE)
 				if (isCurrent(u))
 					qt.insert(u, nu.d);
-#endif
 			});
-
-#if defined(USE_PIVOTS_V_QUEUE)
-			forAllSubTree(v, [&](NodeID u){
-				Node& nu = nodes[u];
-				if (qp.contains(u))
-					qp.remove(u);
-
-				// scan for new pivots to u
-				forAllOutArcs(u, uv, is) {
-					Arc& auv = arcs[uv]; NodeID v = auv.head; Node& nv = nodes[v];
-					ArcID vu = auv.rev; Arc& avu = arcs[vu];
-					if (isInPivot(nv, avu)) {
-						qp.offer(v, nv.d); // costly
-					}
-				}
-			});
-#endif
 
 #if defined(GGT_RELABEL)
 			makeCur(y);
@@ -407,33 +372,9 @@ void NetworkMaxFlowSimplex::solve() {
 			forAllSubTree(w, [&](NodeID u){
 				Node& nu = nodes[u];
 				nu.tree = IN_S;
-#if defined(USE_CUR_T_QUEUE)
 				if (qt.contains(u))
 					qt.remove(u);
-#endif
 			});
-
-#if defined(USE_PIVOTS_V_QUEUE)
-			forAllSubTree(w, [&](NodeID u){
-				Node& nu = nodes[u];
-#if defined(FORCE_STRICT_PIVOTS)
-				// if we strictly force the pivot list to contain vertices with at least 1 pivot.
-				// we need to check neighbors, but slower
-				forAllOutArcs(u, uv, is) {
-					Node& nu = nodes[u]; Arc& auv = arcs[uv];
-					ArcID vu = auv.rev; Arc& avu = arcs[vu];
-					NodeID v = auv.head; Node& nv = nodes[v];
-					if (qp.contains(v))
-						if (!hasOutPivots(v))
-							qp.remove(v);
-				}
-#else
-				// else we don't check. neighbors might not have pivots anymore
-#endif
-				if (hasOutPivots(u))
-					qp.insert(u, nu.d);  // costly
-			});
-#endif
 
 #if defined(GGT_RELABEL)
 			makeCur(y);
@@ -447,12 +388,6 @@ void NetworkMaxFlowSimplex::solve() {
 		}
 		else {
 			if (verbose >= 2) cout << "xy == vw => Unchanged basis" << endl;
-
-#if defined(USE_PIVOTS_V_QUEUE)
-			if (!hasOutPivots(v))
-				qp.remove(v);
-#endif
-
 
 #if defined(GGT_RELABEL)
 			makeCur(y);
@@ -502,30 +437,6 @@ bool NetworkMaxFlowSimplex::hasInPivots(NodeID u) {
 
 // returns a v from the pivots list with minimal d and deletes it from the list
 ArcID NetworkMaxFlowSimplex::extractMinPivot() {
-#if defined(USE_PIVOTS_V_QUEUE)
-	do {
-		NodeID v = qp.peekMin();
-		if (v == UNDEF_NODE) // no pivots found
-			return UNDEF_ARC;
-		Node& nv = nodes[v];
-		assert(nv.tree == IN_S);
-		//scan the arc list to find an outgoing pivot arc.
-		forAllOutArcs(v, vu, is) {
-			Arc& avu = arcs[vu];
-			NodeID u = avu.head; Node& nu = nodes[u];
-			ArcID uv = avu.rev; Arc& auv = arcs[uv];
-			if (isOutPivot(nu, avu))
-				return vu;
-		}
-		// could not find at least one pivot arc for this pivot vertex
-#if defined(FORCE_STRICT_PIVOTS)
-		assert(false); // cannot happen
-#else
-		qp.remove(v);
-#endif
-	} while (true);
-#endif
-#if defined(USE_CUR_T_QUEUE)
 	NodeID w = qt.extractMin();
 	if (w == UNDEF_NODE) // no pivots found
 		return UNDEF_ARC;
@@ -538,11 +449,9 @@ ArcID NetworkMaxFlowSimplex::extractMinPivot() {
 	assert(nw.d == nv.d + 1);
 	if (nv.tree != IN_S) {
 		cerr<<"w:"<<w<<"->v:"<<v<<" not in S"<<endl;
-		cerr<<"flow: "<<flow<<endl;
 	}
 	assert(nv.tree == IN_S);
 	return vw;
-#endif
 }
 
 
@@ -634,13 +543,8 @@ void NetworkMaxFlowSimplex::changeRoot(NodeID q, NodeID r, NodeID& rLast) {
 
 void NetworkMaxFlowSimplex::setLabel(NodeID v, Dist k) {
 	Node& nv = nodes[v];
-#if defined(USE_PIVOTS_V_QUEUE)
-	qp.update(v, k);
-#endif
-#if defined(USE_CUR_T_QUEUE)
 	if (k < n) qt.update(v, k);
 	else if (qt.contains(v)) qt.remove(v);
-#endif
 	dc[nv.d]--; dc[k]++;
 	nv.d = k;
 }
@@ -733,22 +637,17 @@ bool NetworkMaxFlowSimplex::makeCur(NodeID v) {
 		ArcID uv = avu.rev; Arc& auv = arcs[uv];
 		Dist luv = isResidualOrTreeArc(nu, nv, uv, vu, auv) ? 1 : INF_DIST;
 		if (nv.d == nu.d + luv) {
-#if defined(USE_CUR_T_QUEUE)
-			if (nv.tree == IN_T) {
+			if (nv.tree == IN_T)
 				qt.offer(v, nv.d);
-			}
-#endif
 			if (verbose >= 3) cout << v << " (d=" << nv.d << ") made current to " << avu.head << endl;
 			return true;
 		}
 		nv.cur++;
 	}
-#if defined(USE_CUR_T_QUEUE)
 			if (nv.tree == IN_T) {
 				if (qt.contains(v))
 					qt.remove(v);
 			}
-#endif
 	// add v to to_relabel list
 	if (nv.d < n) {
 		qr.offer(v, nv.d);
@@ -808,12 +707,11 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 		ArcID uv = avu.rev;
 		if (nu.cur == uv) {
 			if (verbose >= 3) cout << u << " (d=" << nu.d << ") made non-current by relabeling of " << v << endl;
-#if defined(USE_CUR_T_QUEUE)
 			if (nu.tree == IN_T) {
 				if (qt.contains(u))
 					qt.remove(u);
 			}
-#endif
+
 			makeCur(u); // if fail u is added in toRelabel list in makeCur()
 		}
 	}
@@ -823,11 +721,9 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 		return;
 	}
 	else {
-#if defined(USE_CUR_T_QUEUE)
 			if (nv.tree == IN_T) {
 				qt.insert(v, nv.d);
 			}
-#endif
 	}
 
 #if defined(GAP_RELABEL)
@@ -845,12 +741,7 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 	c_gap++;
 #endif
 	cout<<"gap detected at d="<<k<<endl;
-#ifdef USE_PIVOTS_V_QUEUE
-	qp.flush();
-#endif
-#ifdef USE_CUR_T_QUEUE
 	qt.flush();
-#endif
 	qr.flush();
 	return;
 /*
@@ -876,7 +767,7 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 void NetworkMaxFlowSimplex::doGlobalRelabel() {
 #ifdef USE_STATS_COUNT
 	c_globalUpdate++;
-	//cout << "Global relabeling: " << c_globalUpdate << endl;
+	cout << "Global relabeling: " << c_globalUpdate << endl;
 #endif
 
 	qr.flush();
@@ -922,7 +813,7 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 	}
 
 	// check current arcs are correct after bfs
-	//forAllNodes(v) if (v != source) assert(checkCurrent(v));
+	forAllNodes(v) if (v != source) assert(checkCurrent(v));
 }
 
 

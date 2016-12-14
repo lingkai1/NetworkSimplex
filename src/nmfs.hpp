@@ -22,14 +22,6 @@
 #endif
 
 
-//#define USE_PIVOTS_V_QUEUE
-#define USE_CUR_T_QUEUE
-
-#if defined(USE_PIVOTS_V_QUEUE)
-//#define FORCE_STRICT_PIVOTS // force the pivots list to strictly contain pivots
-#endif
-
-
 #ifdef USE_STATS_TIME
 double timer();
 #endif
@@ -52,21 +44,12 @@ public:
 	std::vector<NodeID> dc; // for each level d maintains the number of nodes with label == d
 
 	// pivot vertex queue (vertices (of S) with at least 1 outgoing pivot)
-#if defined(USE_PIVOTS_V_QUEUE)
-#define bpq(name) qp##name
-#define BPQ_PIVOTS_V
-#include "bpq.hpp"
-#undef BPQ_PIVOTS_V
-#undef bpq
-#endif
 	// current t vertices queue
-#if defined(USE_CUR_T_QUEUE)
 #define bpq(name) qt##name
 #define BPQ_CUR_T
 #include "bpq.hpp"
 #undef BPQ_CUR_T
 #undef bpq
-#endif
 	// to relabel queue
 #define bpq(name) qr##name
 #define BPQ_RELABEL

@@ -133,19 +133,11 @@ struct  bpq() { // bucket based priority queue
 	bool processed() {
 		while (first[dmin] == nSentinel && dmin <= dmax) {
 #if defined(LAZY_RELABEL)
-#if defined(USE_PIVOTS_V_QUEUE)
-			if (dmin > p.qp.dmin) {
-				dmax = dmin;
-				return true;
-			}
-#endif
-#if defined(USE_CUR_T_QUEUE)
 			if (dmin >= p.qt.dmin) {
 				//dmax = dmin;
 				flush();
 				return true;
 			}
-#endif
 #endif
 			dmin++;
 		}
