@@ -42,6 +42,9 @@ public:
 	NodeID sink; // sink node pointer
 	Flow flow; // flow value
 	std::vector<NodeID> dc; // for each level d maintains the number of nodes with label == d
+	std::vector<int> color;
+	std::queue<NodeID> bfsq;
+	std::stack<NodeID> dfss;
 
 	// pivot vertex queue (vertices (of S) with at least 1 outgoing pivot)
 	// current t vertices queue
@@ -111,7 +114,7 @@ private:
 	double globalRelabelFreq;
 	NodeID globalRelabelThreshold;
 #endif
-	void doGlobalRelabel();
+	void globalUpdate();
 
 	bool makeCur(NodeID v);
 	void relabel(NodeID v);

@@ -18,7 +18,6 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 		Arc& ai = arcs[i];
 	}
 
-	vector<int> color(nSentinel); // todo: to optimize (reuse another field maybe)
 	fill(color.begin(), color.end(), COLOR_WHITE);
 	if (verbose >= 2) cout << "Initial BFS" << endl;
 	bfs(source,
@@ -58,7 +57,12 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 			return false; // reject other types of arcs
 		}
 	},
-	color);
+	[&](){ return bfsq.empty(); },
+	[&](NodeID u){ bfsq.push(u); },
+	[&](){ NodeID u = bfsq.front(); bfsq.pop(); return u; },
+	[&](NodeID u, int c){ color[u] = c; },
+	[&](NodeID u){ return color[u]; }
+	);
 
 	forAllNodes(v) if (v!= sink && color[v] == COLOR_WHITE) {
 		// delete unreachable nodes beyond sink
@@ -113,8 +117,12 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 		Node& nh = nodes[ai.head];
 		nu.size += nh.size; // compute subtree sizes in post visit order
 	},
-	color);
-
+	[&](){ return dfss.empty(); },
+	[&](NodeID pu, ArcID i){ dfss.push(i); },
+	[&](NodeID& pu, ArcID& i){ i = dfss.top(); pu = arcs[arcs[i].rev].head; dfss.pop(); return arcs[i].head; },
+	[&](NodeID u, int c){ color[u] = c; },
+	[&](NodeID u){ return color[u]; }
+	);
 
 	Node& nt = nodes[sink];
 	nt.parent = UNDEF_ARC;
@@ -124,15 +132,9 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 
 	nodes[source].parent = UNDEF_ARC;
 
-	qt.initialize();
-	qr.initialize();
+	dc[0] = n - 1;
+	dc[1] = 1;
 
-
-	dc.resize(nSentinel+1);
-	fill(dc.begin(), dc.end(), 0);
-	forAllNodes(u) {
-		dc[nodes[u].d]++;
-	}
 
 #if defined(GLOBAL_RELABEL)
 	globalRelabelFreq = 1.0;
@@ -140,11 +142,8 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 	globalRelabelWork = 0;
 #endif
 
-	doGlobalRelabel();
-
-	// initialize qt
-	assert(isCurrent(sink));
-	qt.insert(sink, nodes[sink].d);
+	globalUpdate();
+	//qt.insert(sink, nodes[sink].d); // set in globalUpdate()
 }
 
 
@@ -644,10 +643,10 @@ bool NetworkMaxFlowSimplex::makeCur(NodeID v) {
 		}
 		nv.cur++;
 	}
-			if (nv.tree == IN_T) {
-				if (qt.contains(v))
-					qt.remove(v);
-			}
+	if (nv.tree == IN_T) {
+		if (qt.contains(v))
+			qt.remove(v);
+	}
 	// add v to to_relabel list
 	if (nv.d < n) {
 		qr.offer(v, nv.d);
@@ -662,7 +661,7 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	// try global update if a lot of work has been done
 	globalRelabelWork++;
 	if (globalRelabelWork * globalRelabelFreq > globalRelabelThreshold) {
-		doGlobalRelabel();
+		globalUpdate();
 		globalRelabelWork = 0;
 		return;
 	}
@@ -721,9 +720,9 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 		return;
 	}
 	else {
-			if (nv.tree == IN_T) {
-				qt.insert(v, nv.d);
-			}
+		if (nv.tree == IN_T) {
+			qt.insert(v, nv.d);
+		}
 	}
 
 #if defined(GAP_RELABEL)
@@ -744,7 +743,7 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 	qt.flush();
 	qr.flush();
 	return;
-/*
+	/*
 	assert(dc[k] == 0);
 	for (Dist d = k+1; d <= qr.dmax; d++) {
 		NodeID v = qr.first[d];
@@ -758,24 +757,24 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 		qr.first[d] = nSentinel;
 	}
 	qr.dmax = k-1;
-	*/
+	 */
 }
 #endif
 
 // do a global update
 // do a BFS to compute exact d labels (BFS = dijkstra in unweighted graphs)
-void NetworkMaxFlowSimplex::doGlobalRelabel() {
+void NetworkMaxFlowSimplex::globalUpdate() {
 #ifdef USE_STATS_COUNT
 	c_globalUpdate++;
 	cout << "Global relabeling: " << c_globalUpdate << endl;
 #endif
 
 	qr.flush();
+	qt.flush(); // we need to rebuild qt
 
 	// do BFS from source to compute exact labels
 	nodes[source].d = 0;
 
-	vector<int> color(nSentinel);
 	fill(color.begin(), color.end(), COLOR_WHITE);
 	bfs(source,
 			[&](NodeID u){ // pre node
@@ -788,9 +787,10 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 		NodeID v = auv.head; Node& nv = nodes[v];
 		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
 			if (headColor == COLOR_WHITE) {
-
 				setLabel(v, nu.d + 1);
 				nv.cur = vu;
+				if (nv.tree == IN_T)
+					qt.insert(v, nv.d);
 			}
 			else if (nv.d == nu.d + 1) {
 				if (nv.cur > vu) {
@@ -805,7 +805,12 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 		else
 			return false;
 	},
-	color);
+	[&](){ return bfsq.empty(); },
+	[&](NodeID u){ bfsq.push(u); },
+	[&](){ NodeID u = bfsq.front(); bfsq.pop(); return u; },
+	[&](NodeID u, int c){ color[u] = c; },
+	[&](NodeID u){ return color[u]; }
+	);
 
 	forAllNodes(v) if (color[v] == COLOR_WHITE) {
 		// unreachable nodes.
@@ -813,7 +818,7 @@ void NetworkMaxFlowSimplex::doGlobalRelabel() {
 	}
 
 	// check current arcs are correct after bfs
-	forAllNodes(v) if (v != source) assert(checkCurrent(v));
+	//forAllNodes(v) if (v != source) assert(checkCurrent(v));
 }
 
 

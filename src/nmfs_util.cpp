@@ -28,6 +28,12 @@ NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format, int verbos
 #ifdef USE_STATS_TIME
 	t_parse = timer() - t_parse;
 #endif
+	// allocate
+	qt.initialize();
+	qr.initialize();
+	dc.resize(nSentinel+1); dc.shrink_to_fit();
+	fill(dc.begin(), dc.end(), 0);
+	color.resize(nSentinel+1); color.shrink_to_fit();
 }
 
 // destructor
