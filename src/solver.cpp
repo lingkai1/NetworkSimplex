@@ -522,10 +522,7 @@ ArcID NetworkMaxFlowSimplex::extractMinPivot() {
 	ArcID wv = nw.cur; Arc& awv = arcs[wv];
 	ArcID vw = awv.rev; Arc& avw = arcs[vw];
 	NodeID v = awv.head; Node& nv = nodes[v];
-	if (!isCurrent(w)) {
-		cerr<<"not current w:"<<w<<" d="<<nw.d<<endl;
-	}
-	assert(isCurrent(w));
+	//assert(isCurrent(w));
 	assert(nw.d == nv.d + 1);
 	if (nv.tree != IN_S) {
 		cerr<<"w:"<<w<<"->v:"<<v<<" not in S"<<endl;
@@ -829,12 +826,21 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 }
 
 #if defined(GAP_RELABEL)
-// need to add backwards search
+
 void NetworkMaxFlowSimplex::gap(Dist k) {
-	cout<<"gap detected at d="<<k<<endl;
 #ifdef USE_STATS_COUNT
 	c_gap++;
 #endif
+	cout<<"gap detected at d="<<k<<endl;
+#ifdef USE_PIVOTS_V_QUEUE
+	qp.flush();
+#endif
+#ifdef USE_CUR_T_QUEUE
+	qt.flush();
+#endif
+	qr.flush();
+	return;
+/*
 	assert(dc[k] == 0);
 	for (Dist d = k+1; d <= qr.dmax; d++) {
 		NodeID v = qr.first[d];
@@ -848,6 +854,7 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 		qr.first[d] = nSentinel;
 	}
 	qr.dmax = k-1;
+	*/
 }
 #endif
 

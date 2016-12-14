@@ -45,8 +45,7 @@ struct  bpq() { // bucket based priority queue
 		assert(!contains(v));
 		assert(0 <= k); assert(k <= nSentinel);
 #if defined(BPQ_CUR_T)
-		if (!p.isCurrent(v)) std::cerr<<"v:"<<v<<" d:"<<nodes[v].d<<" not current in insert()"<<std::endl;
-		assert(p.isCurrent(v));
+		//assert(p.isCurrent(v));
 #endif
 		Node& nv = nodes[v];
 		NodeID w = first[k]; Node& nw = nodes[w];
@@ -141,12 +140,20 @@ struct  bpq() { // bucket based priority queue
 	// returns true if qr is empty (or does not need to be processed further in the lazy relabeling case)
 	bool processed() {
 		while (first[dmin] == nSentinel && dmin <= dmax) {
-	#if defined(LAZY_RELABEL)
+#if defined(LAZY_RELABEL)
+#if defined(USE_PIVOTS_V_QUEUE)
 			if (dmin > p.qp.dmin) {
 				dmax = dmin;
 				return true;
 			}
-	#endif
+#endif
+#if defined(USE_CUR_T_QUEUE)
+			if (dmin >= p.qt.dmin) {
+				//dmax = dmin;
+				return true;
+			}
+#endif
+#endif
 			dmin++;
 		}
 		if (dmin <= dmax) {
