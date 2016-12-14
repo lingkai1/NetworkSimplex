@@ -1,13 +1,3 @@
-/*#ifndef bpq
-#define bpq(a) qp
-#define __cplusplus 201103L // useless stuff meant to fix eclipse index errors
-#include "types.hpp"
-#include "assert.h"
-#include <vector>
-#include <list>
-#define Prev
-#define Next
-#endif*/
 
 struct  bpq() { // bucket based priority queue
 	NetworkMaxFlowSimplex& p;
@@ -60,9 +50,6 @@ struct  bpq() { // bucket based priority queue
 		if (k > dmax)
 			dmax = k;
 
-#if defined(USE_STATS_COUNT) && defined(BPQ_PIVOTS_V)
-		p.c_pivotsInserted++;
-#endif
 	}
 
 	void remove(NodeID v) {
@@ -82,9 +69,9 @@ struct  bpq() { // bucket based priority queue
 
 		nv.bpq(Prev) = nv.bpq(Next) = UNDEF_NODE;
 
-#if defined(USE_STATS_COUNT) && defined(BPQ_PIVOTS_V)
-		p.c_pivotsDeleted++;
-#endif
+		while (first[dmin] == nSentinel && dmin <= dmax)
+			dmin++;
+
 	}
 
 	void update(NodeID v, int k) {
@@ -106,7 +93,6 @@ struct  bpq() { // bucket based priority queue
 			NodeID v = first[dmin];
 			assert(v != nSentinel);
 			remove(v);
-			assert(first[dmin] != v);
 			return v;
 		}
 		else {
@@ -130,10 +116,16 @@ struct  bpq() { // bucket based priority queue
 	}
 
 	void flush() {
-		forAllNodes(u) {
+		/*forAllNodes(u) {
 			if (contains(u))
 				remove(u);
-		}
+		}*/
+		for (Dist d=dmin; d <= dmax; d++)
+			while (first[d] != nSentinel) {
+				remove(first[d]);
+			}
+		dmin = nSentinel;
+		dmax = 0;
 	}
 
 #if defined(BPQ_RELABEL)
@@ -150,6 +142,7 @@ struct  bpq() { // bucket based priority queue
 #if defined(USE_CUR_T_QUEUE)
 			if (dmin >= p.qt.dmin) {
 				//dmax = dmin;
+				flush();
 				return true;
 			}
 #endif

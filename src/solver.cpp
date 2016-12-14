@@ -60,6 +60,20 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 	},
 	color);
 
+	forAllNodes(v) if (v!= sink && color[v] == COLOR_WHITE) {
+		// delete unreachable nodes beyond sink
+		Node& nv = nodes[v];
+		//cout<<"Unreachable node: "<<v<<endl;
+		forAllOutArcs(v, vu, is) {
+			Arc& avu = arcs[vu];
+			ArcID uv = avu.rev; Arc& auv = arcs[uv];
+			NodeID u = avu.head; Node& nu = nodes[u];
+			auv.resCap = avu.resCap = 0;
+		}
+		nv.first = nodes[v+1].first; // delete arcs
+		nv.d = n;
+	}
+
 	//do DFS to initialize subtree fields of each vertex
 	NodeID prevu = source;
 	nodes[source].prev = UNDEF_NODE;
@@ -164,8 +178,6 @@ void NetworkMaxFlowSimplex::solve() {
 	c_StoTMoves = 0;
 	c_TtoSMoves = 0;
 	c_augPathTotalLen = 0;
-	c_pivotsInserted = 0;
-	c_pivotsDeleted = 0;
 	c_makeCur = 0;
 	c_relabel = 0;
 	c_relabelArcScans = 0;
@@ -526,6 +538,7 @@ ArcID NetworkMaxFlowSimplex::extractMinPivot() {
 	assert(nw.d == nv.d + 1);
 	if (nv.tree != IN_S) {
 		cerr<<"w:"<<w<<"->v:"<<v<<" not in S"<<endl;
+		cerr<<"flow: "<<flow<<endl;
 	}
 	assert(nv.tree == IN_S);
 	return vw;

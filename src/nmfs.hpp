@@ -14,7 +14,7 @@
 
 #define GGT_RELABEL // Use GGT algorithm (enable relabeling)
 #ifdef GGT_RELABEL
-//#define LAZY_RELABEL // use lazy relabeling heuristic
+#define LAZY_RELABEL // use lazy relabeling heuristic
 #if defined(LAZY_RELABEL)
 //#define GLOBAL_RELABEL // use global update heuristic
 #endif
@@ -161,8 +161,6 @@ private:
 	long long c_StoTMoves;
 	long long c_TtoSMoves;
 	long long c_augPathTotalLen;
-	long long c_pivotsInserted;
-	long long c_pivotsDeleted;
 	long long c_makeCur;
 	long long c_relabel;
 	long long c_relabelArcScans;
