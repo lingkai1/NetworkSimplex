@@ -138,7 +138,7 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 
 
 #if defined(GLOBAL_RELABEL)
-	globalRelabelFreq = 1.0;
+	globalRelabelFreq = 0.2;
 	globalRelabelThreshold = n;
 	globalRelabelWork = 0;
 #endif

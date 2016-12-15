@@ -71,6 +71,10 @@ struct  bpq() { // bucket based priority queue
 
 		while (first[dmin] == nSentinel && dmin <= dmax)
 			dmin++;
+		if (dmin > dmax) {
+			dmin = nSentinel;
+			dmax = 0;
+		}
 
 	}
 

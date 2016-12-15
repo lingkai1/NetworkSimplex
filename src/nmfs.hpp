@@ -15,9 +15,7 @@
 #define GGT_RELABEL // Use GGT algorithm (enable relabeling)
 #ifdef GGT_RELABEL
 #define LAZY_RELABEL // use lazy relabeling heuristic
-#if defined(LAZY_RELABEL)
 //#define GLOBAL_RELABEL // use global update heuristic
-#endif
 #define GAP_RELABEL // use gap relabeling heuristic
 #endif
 
