@@ -132,16 +132,14 @@ struct  bpq() { // bucket based priority queue
 	// returns true if qr is empty (or does not need to be processed further in the lazy relabeling case)
 	bool processed() {
 		while (first[dmin] == nSentinel && dmin <= dmax) {
-#if defined(LAZY_RELABEL)
-			if (dmin >= p.qt.dmin) {
-				//dmax = dmin;
-				flush();
-				return true;
-			}
-#endif
 			dmin++;
 		}
 		if (dmin <= dmax) {
+#if defined(LAZY_RELABEL)
+			if (dmin >= p.qt.dmin) {
+				return true;
+			}
+#endif
 			return false;
 		}
 		else {
