@@ -371,20 +371,7 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 				qr.insert(y, ny.d);
 			}
-			while (!qr.processed())
-				relabel(qr.extractMin());
-
-#if defined(LAZY_RELABEL2)
-			for (Dist k=qr.dmin; k<=qr.dmax; k++)
-				for (NodeID v = qr.first[k]; v != nSentinel; ) {
-					NodeID w = nodes[v].qrNext;
-					if (nodes[v].tree == IN_S) {
-						qr.remove(v);
-						relabel(v);
-					}
-					v = w;
-				}
-#endif
+			processQr();
 
 #ifdef USE_STATS_COUNT
 			c_StoTMoves += nv.size;
@@ -423,20 +410,7 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 					qr.insert(y, nodes[y].d);
 			}
-			while (!qr.processed())
-				relabel(qr.extractMin());
-
-#if defined(LAZY_RELABEL2)
-			for (Dist k=qr.dmin; k<=qr.dmax; k++)
-				for (NodeID v = qr.first[k]; v != nSentinel; ) {
-					NodeID w = nodes[v].qrNext;
-					if (nodes[v].tree == IN_S) {
-						qr.remove(v);
-						relabel(v);
-					}
-					v = w;
-				}
-#endif
+			processQr();
 
 #ifdef USE_STATS_COUNT
 			c_TtoSMoves += nw.size;
@@ -460,20 +434,7 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 					qr.insert(y, ny.d);
 			}
-			while (!qr.processed())
-				relabel(qr.extractMin());
-
-#if defined(LAZY_RELABEL2)
-			for (Dist k=qr.dmin; k<=qr.dmax; k++)
-				for (NodeID v = qr.first[k]; v != nSentinel; ) {
-					NodeID w = nodes[v].qrNext;
-					if (nodes[v].tree == IN_S) {
-						qr.remove(v);
-						relabel(v);
-					}
-					v = w;
-				}
-#endif
+			processQr();
 
 #ifdef USE_STATS_COUNT
 			c_basisNoChange++;
@@ -487,6 +448,23 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 	}
 
+}
+
+void NetworkMaxFlowSimplex::processQr() {
+	while (!qr.processed())
+		relabel(qr.extractMin());
+
+#if defined(LAZY_RELABEL2)
+	for (Dist k=qr.dmin; k<=qr.dmax; k++)
+		for (NodeID v = qr.first[k]; v != nSentinel; ) {
+			NodeID w = nodes[v].qrNext;
+			if (nodes[v].tree == IN_S) {
+				qr.remove(v);
+				relabel(v);
+			}
+			v = w;
+		}
+#endif
 }
 
 
@@ -748,7 +726,7 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 #ifdef USE_STATS_COUNT
 	c_gap++;
 #endif
-	cout<<"gap detected at d="<<k<<endl;
+	if (verbose >= 1) cout<<"Gap detected at d="<<k<<endl;
 	qt.flush();
 	qr.flush();
 	return;
@@ -775,7 +753,7 @@ void NetworkMaxFlowSimplex::gap(Dist k) {
 void NetworkMaxFlowSimplex::globalUpdate() {
 #ifdef USE_STATS_COUNT
 	c_globalUpdate++;
-	cout << "Global relabeling: " << c_globalUpdate << endl;
+	if (verbose >= 1) cout << "Global relabeling: " << c_globalUpdate << endl;
 #endif
 
 	qr.flush();
@@ -827,7 +805,7 @@ void NetworkMaxFlowSimplex::globalUpdate() {
 	}
 
 	// check current arcs are correct after bfs
-	forAllNodes(v) if (v != source) assert(checkCurrent(v));
+	// forAllNodes(v) if (v != source) assert(checkCurrent(v));
 }
 
 
