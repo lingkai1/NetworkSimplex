@@ -75,7 +75,7 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 			NodeID u = avu.head; Node& nu = nodes[u];
 			auv.resCap = avu.resCap = 0;
 		}
-		nv.first = nodes[v+1].first; // delete arcs
+		nv.cur = nv.first = nodes[v+1].first; // delete arcs
 		nv.d = n;
 	}
 
@@ -198,6 +198,7 @@ void NetworkMaxFlowSimplex::solve() {
 			fflush(stdout); t_loopInfo = timer();
 		}
 
+		//if (c_gap == 0) forAllNodes(u) if (nodes[u].tree == IN_T) if (!qt.contains(u) && !qr.contains(u)) { cout<<"problem with u: " << u<<endl; assert(false); }
 
 		if (verbose >= 3) {
 			printS();
@@ -223,16 +224,16 @@ void NetworkMaxFlowSimplex::solve() {
 		Arc& avw = arcs[vw];
 		wv = avw.rev;
 		Arc& awv = arcs[wv];
-		v = awv.head;
-		w = avw.head;
+		v = awv.head; Node& nv = nodes[v];
+		w = avw.head; Node& nw = nodes[w];
 
-		assert(nodes[v].d < n);
-		//assert(nodes[w].d == nodes[v].d + 1);
+		assert(nv.d < n);
+		//assert(nw.d == nv.d + 1);
 
 		if (verbose >= 2) cout << "Pivot (entering) vw arc: " << v << "->" << w << endl;
 
-		assert(nodes[v].tree == IN_S);
-		assert(nodes[w].tree == IN_T);
+		assert(nv.tree == IN_S);
+		assert(nw.tree == IN_T);
 
 		if (verbose >= 2) cout << "Searching bottleneck..." << endl;
 		NodeID u;
@@ -286,8 +287,8 @@ void NetworkMaxFlowSimplex::solve() {
 		Arc& axy = arcs[xy];
 		yx = axy.rev;
 		Arc& ayx = arcs[yx];
-		x = ayx.head;
-		y = axy.head;
+		x = ayx.head; Node& nx = nodes[x];
+		y = axy.head; Node& ny = nodes[y];
 		if (verbose >= 2) cout << "Bottleneck (leaving) xy arc: " << x << "->" << y << " delta: " << delta << endl;
 
 		if (verbose >= 2) cout << "Augmenting flow..." << endl;
@@ -325,6 +326,7 @@ void NetworkMaxFlowSimplex::solve() {
 		assert(axy.resCap == 0);
 
 
+
 		if (verbose >= 2) cout << "Updating basis..." << endl;
 		if (xyTree == IN_S) {
 			if (verbose >= 2) cout << "xy in S => T grows" << endl;
@@ -335,22 +337,43 @@ void NetworkMaxFlowSimplex::solve() {
 			getSubtreeLastNode(y, nLast);
 			deleteSubtree(source, y, nLast); // disconnect Q from S
 			changeRoot(y, v, nLast); // this transforms Q into R (updates parents and the doubly linked list)
-			nodes[v].parent = vw;
+			nv.parent = vw;
 			addSubtreeAsChild(sink, v, nLast, w); // connect R to T
 
 			// move subtree from S to T
 			forAllSubTree(v, [&](NodeID u){
 				Node& nu = nodes[u];
 				nu.tree = IN_T;
-				if (isCurrent(u))
-					qt.insert(u, nu.d);
+				if (u != y) {
+#if defined(LAZY_RELABEL) && !defined(LAZY_RELABEL2)
+					if (isCurrent(u))
+#else
+						//assert(isCurrent(u));
+#endif
+						qt.insert(u, nu.d);
+				}
 			});
 
-#if defined(GGT_RELABEL)
-			makeCur(y);
+			// reinsert w because it was removed when pivot was extracted
+			// w is already current
+			//assert(isCurrent(w));
+			qt.insert(w, nw.d);
+
+			//assert(ny.tree == IN_T);
+			if (makeCur(y)) {
+				qt.insert(y, ny.d);
+			} else {
+				qt.remove(y);
+#if defined(LAZY_RELABEL) && !defined(LAZY_RELABEL2)
+				if (!qr.contains(y)) // y can possibly be in Qr whether it was in S or T
+#else
+					assert(!qr.contains(y)); // y was in S so it cannot be in Qr
+#endif
+				qr.insert(y, ny.d);
+			}
 			while (!qr.processed())
 				relabel(qr.extractMin());
-#endif
+
 #if defined(LAZY_RELABEL2)
 			for (Dist k=qr.dmin; k<=qr.dmax; k++)
 				for (NodeID v = qr.first[k]; v != nSentinel; ) {
@@ -362,8 +385,9 @@ void NetworkMaxFlowSimplex::solve() {
 					v = w;
 				}
 #endif
+
 #ifdef USE_STATS_COUNT
-			c_StoTMoves += nodes[v].size;
+			c_StoTMoves += nv.size;
 			c_basisGrowT++;
 #endif
 		}
@@ -376,21 +400,32 @@ void NetworkMaxFlowSimplex::solve() {
 			getSubtreeLastNode(x, nLast);
 			deleteSubtree(sink, x, nLast); // disconnect Q from T
 			changeRoot(x, w, nLast); // this transforms Q into R (updates parents and the doubly linked list)
-			nodes[w].parent = wv;
+			nw.parent = wv;
 			addSubtreeAsChild(source, w, nLast, v); // connect R to S
 
 			forAllSubTree(w, [&](NodeID u){
 				Node& nu = nodes[u];
 				nu.tree = IN_S;
-				if (qt.contains(u))
-					qt.remove(u);
+				qt.remove(u);
 			});
 
-#if defined(GGT_RELABEL)
-			makeCur(y);
+			qt.remove(y);
+
+			//assert(ny.tree == IN_T);
+			if (makeCur(y)) {
+				qt.insert(y, ny.d);
+			} else {
+				qt.remove(y);
+#if defined(LAZY_RELABEL)
+				if (!qr.contains(y))
+#else
+					//assert(!qr.contains(y)); Qr is empty between pivots
+#endif
+					qr.insert(y, nodes[y].d);
+			}
 			while (!qr.processed())
 				relabel(qr.extractMin());
-#endif
+
 #if defined(LAZY_RELABEL2)
 			for (Dist k=qr.dmin; k<=qr.dmax; k++)
 				for (NodeID v = qr.first[k]; v != nSentinel; ) {
@@ -402,19 +437,32 @@ void NetworkMaxFlowSimplex::solve() {
 					v = w;
 				}
 #endif
+
 #ifdef USE_STATS_COUNT
-			c_TtoSMoves += nodes[w].size;
+			c_TtoSMoves += nw.size;
 			c_basisGrowS++;
 #endif
 		}
 		else {
 			if (verbose >= 2) cout << "xy == vw => Unchanged basis" << endl;
 
-#if defined(GGT_RELABEL)
-			makeCur(y);
+			//qt.insert(w, nw.d); // not needed because y == w
+
+			//assert(ny.tree == IN_T);
+			if (makeCur(y)) {
+				qt.insert(y, ny.d);
+			} else {
+				qt.remove(y);
+#if defined(LAZY_RELABEL)
+				if (!qr.contains(y))
+#else
+					//assert(!qr.contains(y)); Qr is empty between pivots
+#endif
+					qr.insert(y, ny.d);
+			}
 			while (!qr.processed())
 				relabel(qr.extractMin());
-#endif
+
 #if defined(LAZY_RELABEL2)
 			for (Dist k=qr.dmin; k<=qr.dmax; k++)
 				for (NodeID v = qr.first[k]; v != nSentinel; ) {
@@ -426,6 +474,7 @@ void NetworkMaxFlowSimplex::solve() {
 					v = w;
 				}
 #endif
+
 #ifdef USE_STATS_COUNT
 			c_basisNoChange++;
 #endif
@@ -438,31 +487,6 @@ void NetworkMaxFlowSimplex::solve() {
 #endif
 	}
 
-}
-
-// returns true if u has outgoing pivots
-// u is assumed to be in S (it doesn't have to be)
-bool NetworkMaxFlowSimplex::hasOutPivots(NodeID u) {
-	Node& nu = nodes[u];
-	forAllOutArcs(u, uv, is) {
-		Arc& auv = arcs[uv];
-		NodeID v = auv.head; Node& nv = nodes[v];
-		if (isOutPivot(nv, auv))
-			return true;
-	}
-	return false;
-}
-// returns true if u has incoming pivots
-// u is assumed to be in T (it doesn't have to be)
-bool NetworkMaxFlowSimplex::hasInPivots(NodeID u) {
-	Node& nu = nodes[u];
-	forAllOutArcs(u, uv, is) {
-		Arc& auv = arcs[uv]; NodeID v = auv.head; Node& nv = nodes[v];
-		ArcID vu = auv.rev; Arc& avu = arcs[vu];
-		if (isInPivot(nv, avu))
-			return true;
-	}
-	return false;
 }
 
 
@@ -600,57 +624,6 @@ bool NetworkMaxFlowSimplex::isCurrent(NodeID v) {
 }
 
 
-bool NetworkMaxFlowSimplex::checkValidCurArc(NodeID v) {
-	bool r = true;
-	assert(v != source);
-	if (nodes[v].d == n) return true;
-	forAllOutArcs(v, vu, is) {
-		Node& nv = nodes[v];
-		Arc& avu = arcs[vu]; NodeID u = avu.head; Node& nu = nodes[u];
-		ArcID uv = avu.rev; Arc& auv = arcs[uv];
-		Dist luv = isResidualOrTreeArc(nu, nv, uv, vu, auv) ? 1 : INF_DIST;
-		//		if (u != sink) {
-		if (nv.d > nu.d + luv) {
-			r = false;
-			cerr<<"invalid labeling check for (u,v)  vu="<<vu<<endl;
-			cerr<<"d(v="<<v<<")="<<nv.d<<" > "<<"d(u="<<u<<")="<<nu.d<<" + "<<luv<<endl;
-		}
-		if (nv.d == nu.d + luv && vu < nv.cur) {
-			r = false;
-			cerr<<"invalid current arc nv.cur="<<nv.cur<<" > vu="<<vu<<" but"<<endl;
-			cerr<<"d(v="<<v<<")="<<nv.d<<" == "<<"d(u="<<u<<")="<<nu.d<<" + "<<luv<<endl;
-		}
-		//		}
-	}
-	if (!r) fflush(stderr);
-	return r;
-}
-
-bool NetworkMaxFlowSimplex::checkCurrent(NodeID v) {
-	assert(v != source);
-	if (nodes[v].first >= nodes[v+1].first) return true;
-	if (nodes[v].d == n) return true;
-	Node& nv = nodes[v];
-	assert(nv.first <= nv.cur && nv.cur < nodes[v+1].first);
-	ArcID vu = nv.cur; Arc& avu = arcs[vu];
-	NodeID u = avu.head; Node& nu = nodes[u];
-	ArcID uv = avu.rev; Arc& auv = arcs[uv];
-	if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
-		if (nv.d != nu.d + 1) {
-			cerr<<"v:"<<v<<", u:"<<u<<" ";
-			cerr<<"dv="<<nv.d;
-			cerr<<" != 1+du="<<(nu.d+1);
-			cerr<<endl;
-		}
-		return checkValidCurArc(v) && nv.d == nu.d + 1;
-	}
-	return checkValidCurArc(v);
-}
-
-
-#if defined(GGT_RELABEL)
-
-
 // try to make v current, find and set its new current arc
 // if v is already current, does nothing
 // if v cannot be made current it is added to the toRelabel list
@@ -659,35 +632,33 @@ bool NetworkMaxFlowSimplex::makeCur(NodeID v) {
 	c_makeCur++;
 #endif
 	if (v == source) return true;
+	assert(v != source);
 	Node& nv = nodes[v];
-
-	if (nv.first >= nodes[v+1].first) return true;
-	if (nv.d >= n) return true;
+	assert(nv.d < n); //if (nv.d >= n) return true;
+	if (nv.first >= nodes[v+1].first) return false;
 	//checkValidCurArc(v);
-
+	assert(nv.first <= nv.cur && nv.cur <= nodes[v+1].first);
 	while (nv.cur < nodes[v+1].first) {
 		ArcID vu = nv.cur; Arc& avu = arcs[vu];
 		Node& nu = nodes[avu.head];
 		ArcID uv = avu.rev; Arc& auv = arcs[uv];
-		Dist luv = isResidualOrTreeArc(nu, nv, uv, vu, auv) ? 1 : INF_DIST;
-		if (nv.d == nu.d + luv) {
-			if (nv.tree == IN_T)
-				qt.offer(v, nv.d);
+		if (isResidualOrTreeArc(nu, nv, uv, vu, auv) && nv.d == nu.d + 1) {
 			if (verbose >= 3) cout << v << " (d=" << nv.d << ") made current to " << avu.head << endl;
 			return true;
 		}
 		nv.cur++;
 	}
-	if (nv.tree == IN_T) {
-		if (qt.contains(v))
-			qt.remove(v);
-	}
-	// add v to to_relabel list
-	if (nv.d < n) {
-		qr.offer(v, nv.d);
-	}
 	return false;
 }
+// in the general case after makeCur we want to do:
+/*
+			if (makeCur(u)) {
+				if (nu.tree == IN_T) qt.insert(u, nu.d);
+			} else {
+				if (nu.tree == IN_T) qt.remove(u);
+				if (!qr.contains(u)) qr.insert(u, nu.d);
+			}
+ */
 
 // relabel v
 // this must result in a strict increase of v's d label based on the assumption that v's current arc was of minimal index
@@ -715,10 +686,11 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 		Arc& avu = arcs[vu];
 		NodeID u = avu.head; Node& nu = nodes[u];
 		ArcID uv = avu.rev; Arc& auv = arcs[uv];
-		Dist luv = isResidualOrTreeArc(nu, nv, uv, vu, auv) ? 1 : INF_DIST;
-		if (nu.d + luv < newD) {
-			newD = nu.d + luv;
-			nv.cur = vu;
+		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
+			if (nu.d + 1 < newD) {
+				newD = nu.d + 1;
+				nv.cur = vu;
+			}
 		}
 #ifdef USE_STATS_COUNT
 		c_relabelArcScans++;
@@ -739,14 +711,16 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 		Arc& avu = arcs[vu];
 		NodeID u = avu.head; Node& nu = nodes[u];
 		ArcID uv = avu.rev;
-		if (nu.cur == uv) {
+		if (nu.cur == uv && nu.d < n) {
 			if (verbose >= 3) cout << u << " (d=" << nu.d << ") made non-current by relabeling of " << v << endl;
-			if (nu.tree == IN_T) {
-				if (qt.contains(u))
-					qt.remove(u);
+			//if (nu.tree == IN_T) assert(qt.contains(u)); //qt.remove(u);
+			if (makeCur(u)) {
+				//if (nu.tree == IN_T) qt.insert(u, nu.d);
+			} else {
+				if (nu.tree == IN_T) qt.remove(u);
+				//assert(!qr.contains(u));
+				qr.insert(u, nu.d);
 			}
-
-			makeCur(u); // if fail u is added in toRelabel list in makeCur()
 		}
 	}
 
@@ -853,10 +827,9 @@ void NetworkMaxFlowSimplex::globalUpdate() {
 	}
 
 	// check current arcs are correct after bfs
-	//forAllNodes(v) if (v != source) assert(checkCurrent(v));
+	forAllNodes(v) if (v != source) assert(checkCurrent(v));
 }
 
 
-#endif
 
 

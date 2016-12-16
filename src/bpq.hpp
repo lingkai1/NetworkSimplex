@@ -34,9 +34,6 @@ struct  bpq() { // bucket based priority queue
 	void insert(NodeID v, Dist k) {
 		assert(!contains(v));
 		assert(0 <= k); assert(k <= nSentinel);
-#if defined(BPQ_CUR_T)
-		//assert(p.isCurrent(v));
-#endif
 		Node& nv = nodes[v];
 		NodeID w = first[k]; Node& nw = nodes[w];
 
@@ -49,10 +46,10 @@ struct  bpq() { // bucket based priority queue
 			dmin = k;
 		if (k > dmax)
 			dmax = k;
-
 	}
 
 	void remove(NodeID v) {
+		if (!contains(v)) return;
 		assert(contains(v));
 		Node& nv = nodes[v]; Dist d = nv.d;
 		NodeID u = nv.bpq(Prev); Node& nu = nodes[u];
@@ -75,12 +72,16 @@ struct  bpq() { // bucket based priority queue
 			dmin = nSentinel;
 			dmax = 0;
 		}
-
 	}
 
-	void offer(NodeID v, int k) {
-		if (!contains(v))
-			insert(v, k);
+	void flush() {
+		while (dmin <= dmax) {
+			while (first[dmin] != nSentinel)
+				remove(first[dmin]);
+			dmin++;
+		}
+		dmin = nSentinel;
+		dmax = 0;
 	}
 
 	NodeID extractMin() {
@@ -107,22 +108,8 @@ struct  bpq() { // bucket based priority queue
 			return UNDEF_NODE;
 		}
 	}
-
 	bool empty() {
 		return peekMin() == UNDEF_NODE;
-	}
-
-	void flush() {
-		/*forAllNodes(u) {
-			if (contains(u))
-				remove(u);
-		}*/
-		for (Dist d=dmin; d <= dmax; d++)
-			while (first[d] != nSentinel) {
-				remove(first[d]);
-			}
-		dmin = nSentinel;
-		dmax = 0;
 	}
 
 #if defined(BPQ_RELABEL)

@@ -14,9 +14,11 @@
 
 #define GGT_RELABEL // Use GGT algorithm (enable relabeling)
 #ifdef GGT_RELABEL
-//#define LAZY_RELABEL // use lazy relabeling heuristic
-//#define LAZY_RELABEL2 // use lazy relabeling heuristic
+//#define LAZY_RELABEL // use lazy relabeling heuristic 1
+#ifdef LAZY_RELABEL
+//#define LAZY_RELABEL2 // use lazy relabeling heuristic 2
 //#define GLOBAL_RELABEL // use global update heuristic
+#endif
 #define GAP_RELABEL // use gap relabeling heuristic
 #endif
 
@@ -84,8 +86,6 @@ public:
 	void solve();
 	void buildInitialBasis();
 
-	bool hasOutPivots(NodeID u);
-	bool hasInPivots(NodeID u);
 	bool isTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu) { return nv.parent == vu || nu.parent == uv; }
 	bool isResidual(Arc& auv) { return auv.resCap > 0; }
 	bool isResidualOrTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu, Arc& auv) { return isResidual(auv) || isTreeArc(nu, nv, uv, vu); }
@@ -108,7 +108,6 @@ private:
 	void setLabel(NodeID v, Dist k);
 	bool isCurrent(NodeID v);
 
-#if defined(GGT_RELABEL)
 #if defined(GLOBAL_RELABEL)
 	NodeID globalRelabelWork;
 	double globalRelabelFreq;
@@ -120,12 +119,8 @@ private:
 	void relabel(NodeID v);
 #if defined(GAP_RELABEL)
 	void gap(Dist k);
-#endif
-#endif
 
-
-	bool checkValidCurArc(NodeID v);
-	bool checkCurrent(NodeID v);
+#endif
 
 
 #include "dfsbfs.hpp"
@@ -154,6 +149,80 @@ private:
 	long long c_guArcScans;
 	long long c_gap;
 #endif
+
+
+	// some debug or unused functions
+	// returns true if u has outgoing pivots
+	// u is assumed to be in S (it doesn't have to be)
+	bool hasOutPivots(NodeID u) {
+		Node& nu = nodes[u];
+		forAllOutArcs(u, uv, is) {
+			Arc& auv = arcs[uv];
+			NodeID v = auv.head; Node& nv = nodes[v];
+			if (isOutPivot(nv, auv))
+				return true;
+		}
+		return false;
+	}
+	// returns true if u has incoming pivots
+	// u is assumed to be in T (it doesn't have to be)
+	bool hasInPivots(NodeID u) {
+		Node& nu = nodes[u];
+		forAllOutArcs(u, uv, is) {
+			Arc& auv = arcs[uv]; NodeID v = auv.head; Node& nv = nodes[v];
+			ArcID vu = auv.rev; Arc& avu = arcs[vu];
+			if (isInPivot(nv, avu))
+				return true;
+		}
+		return false;
+	}
+
+	bool checkValidCurArc(NodeID v) {
+		bool r = true;
+		assert(v != source);
+		if (nodes[v].d == n) return true;
+		forAllOutArcs(v, vu, is) {
+			Node& nv = nodes[v];
+			Arc& avu = arcs[vu]; NodeID u = avu.head; Node& nu = nodes[u];
+			ArcID uv = avu.rev; Arc& auv = arcs[uv];
+			Dist luv = isResidualOrTreeArc(nu, nv, uv, vu, auv) ? 1 : INF_DIST;
+			//		if (u != sink) {
+			if (nv.d > nu.d + luv) {
+				r = false;
+				std::cerr<<"invalid labeling check for (u,v)  vu="<<vu<<std::endl;
+				std::cerr<<"d(v="<<v<<")="<<nv.d<<" > "<<"d(u="<<u<<")="<<nu.d<<" + "<<luv<<std::endl;
+			}
+			if (nv.d == nu.d + luv && vu < nv.cur) {
+				r = false;
+				std::cerr<<"invalid current arc nv.cur="<<nv.cur<<" > vu="<<vu<<" but"<<std::endl;
+				std::cerr<<"d(v="<<v<<")="<<nv.d<<" == "<<"d(u="<<u<<")="<<nu.d<<" + "<<luv<<std::endl;
+			}
+			//		}
+		}
+		if (!r) fflush(stderr);
+		return r;
+	}
+
+	bool checkCurrent(NodeID v) {
+		assert(v != source);
+		if (nodes[v].first >= nodes[v+1].first) return true;
+		if (nodes[v].d == n) return true;
+		Node& nv = nodes[v];
+		assert(nv.first <= nv.cur && nv.cur < nodes[v+1].first);
+		ArcID vu = nv.cur; Arc& avu = arcs[vu];
+		NodeID u = avu.head; Node& nu = nodes[u];
+		ArcID uv = avu.rev; Arc& auv = arcs[uv];
+		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
+			if (nv.d != nu.d + 1) {
+				std::cerr<<"v:"<<v<<", u:"<<u<<" ";
+				std::cerr<<"dv="<<nv.d;
+				std::cerr<<" != 1+du="<<(nu.d+1);
+				std::cerr<<std::endl;
+			}
+			return checkValidCurArc(v) && nv.d == nu.d + 1;
+		}
+		return checkValidCurArc(v);
+	}
 };
 
 #include "dfsbfs.cpp"
