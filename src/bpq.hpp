@@ -119,7 +119,7 @@ struct  bpq() { // bucket based priority queue
 			dmin++;
 		}
 		if (dmin <= dmax) {
-#if defined(LAZY_RELABEL)
+#if defined(LAZY_RELABEL) || defined(LAZY_RELABEL2)
 			if (dmin >= p.qt.dmin) {
 				return true;
 			}

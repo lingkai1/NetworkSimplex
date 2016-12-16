@@ -345,7 +345,7 @@ void NetworkMaxFlowSimplex::solve() {
 				Node& nu = nodes[u];
 				nu.tree = IN_T;
 				if (u != y) {
-#if defined(LAZY_RELABEL) && !defined(LAZY_RELABEL2)
+#if defined(LAZY_RELABEL)
 					if (isCurrent(u))
 #else
 						//assert(isCurrent(u));
@@ -364,7 +364,7 @@ void NetworkMaxFlowSimplex::solve() {
 				qt.insert(y, ny.d);
 			} else {
 				qt.remove(y);
-#if defined(LAZY_RELABEL) && !defined(LAZY_RELABEL2)
+#if defined(LAZY_RELABEL)
 				if (!qr.contains(y)) // y can possibly be in Qr whether it was in S or T
 #else
 					assert(!qr.contains(y)); // y was in S so it cannot be in Qr
@@ -416,7 +416,7 @@ void NetworkMaxFlowSimplex::solve() {
 				qt.insert(y, ny.d);
 			} else {
 				qt.remove(y);
-#if defined(LAZY_RELABEL)
+#if defined(LAZY_RELABEL) || defined(LAZY_RELABEL2)
 				if (!qr.contains(y))
 #else
 					//assert(!qr.contains(y)); Qr is empty between pivots
@@ -453,7 +453,7 @@ void NetworkMaxFlowSimplex::solve() {
 				qt.insert(y, ny.d);
 			} else {
 				qt.remove(y);
-#if defined(LAZY_RELABEL)
+#if defined(LAZY_RELABEL) || defined(LAZY_RELABEL2)
 				if (!qr.contains(y))
 #else
 					//assert(!qr.contains(y)); Qr is empty between pivots
