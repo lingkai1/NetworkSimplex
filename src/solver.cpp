@@ -351,7 +351,17 @@ void NetworkMaxFlowSimplex::solve() {
 			while (!qr.processed())
 				relabel(qr.extractMin());
 #endif
-
+#if defined(LAZY_RELABEL2)
+			for (Dist k=qr.dmin; k<=qr.dmax; k++)
+				for (NodeID v = qr.first[k]; v != nSentinel; ) {
+					NodeID w = nodes[v].qrNext;
+					if (nodes[v].tree == IN_S) {
+						qr.remove(v);
+						relabel(v);
+					}
+					v = w;
+				}
+#endif
 #ifdef USE_STATS_COUNT
 			c_StoTMoves += nodes[v].size;
 			c_basisGrowT++;
@@ -381,6 +391,17 @@ void NetworkMaxFlowSimplex::solve() {
 			while (!qr.processed())
 				relabel(qr.extractMin());
 #endif
+#if defined(LAZY_RELABEL2)
+			for (Dist k=qr.dmin; k<=qr.dmax; k++)
+				for (NodeID v = qr.first[k]; v != nSentinel; ) {
+					NodeID w = nodes[v].qrNext;
+					if (nodes[v].tree == IN_S) {
+						qr.remove(v);
+						relabel(v);
+					}
+					v = w;
+				}
+#endif
 #ifdef USE_STATS_COUNT
 			c_TtoSMoves += nodes[w].size;
 			c_basisGrowS++;
@@ -394,7 +415,17 @@ void NetworkMaxFlowSimplex::solve() {
 			while (!qr.processed())
 				relabel(qr.extractMin());
 #endif
-
+#if defined(LAZY_RELABEL2)
+			for (Dist k=qr.dmin; k<=qr.dmax; k++)
+				for (NodeID v = qr.first[k]; v != nSentinel; ) {
+					NodeID w = nodes[v].qrNext;
+					if (nodes[v].tree == IN_S) {
+						qr.remove(v);
+						relabel(v);
+					}
+					v = w;
+				}
+#endif
 #ifdef USE_STATS_COUNT
 			c_basisNoChange++;
 #endif
