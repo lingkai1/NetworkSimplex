@@ -78,13 +78,6 @@ struct  bpq() { // bucket based priority queue
 
 	}
 
-	void update(NodeID v, int k) {
-		if (contains(v)) {
-			remove(v);
-			insert(v, k);
-		}
-	}
-
 	void offer(NodeID v, int k) {
 		if (!contains(v))
 			insert(v, k);

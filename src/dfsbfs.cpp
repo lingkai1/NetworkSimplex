@@ -84,68 +84,6 @@ inline void NetworkMaxFlowSimplex::bfs(NodeID s,
 
 
 
-
-// Recursive implementation of DFS with pre and post processing of nodes and arcs user-defined
-// advantage: no stack needed (call stack implicitly used), disadvantage: may need very large call stack
-template <
-typename PreOrderNode,
-typename PostOrderNode,
-typename PreOrderArc,
-typename PostOrderArc,
-typename ColorSet,
-typename ColorGet
->
-inline void NetworkMaxFlowSimplex::dfs_r(NodeID u,
-		const PreOrderNode& preOrderNode,
-		const PostOrderNode& postOrderNode,
-		const PreOrderArc& preOrderArc,
-		const PostOrderArc& postOrderArc,
-		const ColorSet& colorSet,
-		const ColorGet& colorGet
-) {
-	// white: unvisited, untouched node
-	// grey: ancestor visited node
-	// black: visited node in another branch or descendant.
-	preOrderNode(u);
-	colorSet(u, COLOR_BLACK);
-	forAllOutArcs(u, i, is) {
-		NodeID v = arcs[i].head;
-		if (preOrderArc(u, i, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
-			colorSet(u, COLOR_GREY);
-			dfs_r(v, preOrderNode, postOrderNode, preOrderArc, postOrderArc, colorSet, colorGet);
-			postOrderArc(u, i);
-		}
-	}
-	postOrderNode(u, colorGet(u) == COLOR_BLACK);
-	colorSet(u, COLOR_BLACK);
-}
-template <
-typename PreOrderNode,
-typename PostOrderNode,
-typename PreOrderArc,
-typename PostOrderArc
->
-inline void NetworkMaxFlowSimplex::dfs_r(NodeID u,
-		const PreOrderNode& preOrderNode,
-		const PostOrderNode& postOrderNode,
-		const PreOrderArc& preOrderArc,
-		const PostOrderArc& postOrderArc,
-		std::vector<int>& color
-) {
-	return dfs_r(u,
-			preOrderNode,
-			postOrderNode,
-			preOrderArc,
-			postOrderArc,
-			[&](NodeID u, int c){ color[u] = c; },
-			[&](NodeID u){ return color[u]; }
-	);
-}
-
-
-
-
-
 // Iterative implementation of DFS with pre and post processing of nodes and arcs user-defined
 // based on 1 stack of arcs
 template <
@@ -174,6 +112,8 @@ inline void NetworkMaxFlowSimplex::dfs_i(NodeID s,
 	// white: unvisited, untouched node
 	// grey: ancestor visited node
 	// black: visited node in another branch or descendant.
+	fill(dfsiv.begin(), dfsiv.end(), 0); // save arc index position to avoid going back to the beginning every time
+
 	NodeID pu, u; ArcID i;
 	bool goingDown = true;
 	u = s;
@@ -181,7 +121,7 @@ inline void NetworkMaxFlowSimplex::dfs_i(NodeID s,
 		if (colorGet(u) == COLOR_WHITE)
 			preOrderNode(u);
 		colorSet(u, COLOR_BLACK); // no more children to explore
-		forAllOutArcs(u, i, is) {
+		for (NodeID i = nodes[u].first + dfsiv[u], is = nodes[u+1].first; i != is; i++, dfsiv[u]++) {
 			NodeID v = arcs[i].head;
 			if (preOrderArc(u, i, colorGet(v)) && colorGet(v) == COLOR_WHITE) {
 				colorSet(u, COLOR_GREY); // u has more children to explore

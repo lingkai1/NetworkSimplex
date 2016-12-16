@@ -133,8 +133,8 @@ void NetworkMaxFlowSimplex::buildInitialBasis() {
 
 	nodes[source].parent = UNDEF_ARC;
 
-	dc[0] = n - 1;
-	dc[1] = 1;
+	d[0] = n - 1;
+	d[1] = 1;
 
 
 #if defined(GLOBAL_RELABEL)
@@ -543,9 +543,12 @@ void NetworkMaxFlowSimplex::changeRoot(NodeID q, NodeID r, NodeID& rLast) {
 
 void NetworkMaxFlowSimplex::setLabel(NodeID v, Dist k) {
 	Node& nv = nodes[v];
-	if (k < n) qt.update(v, k);
-	else if (qt.contains(v)) qt.remove(v);
-	dc[nv.d]--; dc[k]++;
+	if (qt.contains(v)) {
+		qt.remove(v);
+		if (k < n)
+			qt.insert(v, k);
+	}
+	d[nv.d]--; d[k]++;
 	nv.d = k;
 }
 
@@ -727,7 +730,7 @@ void NetworkMaxFlowSimplex::relabel(NodeID v) {
 	}
 
 #if defined(GAP_RELABEL)
-	if (dc[oldD] == 0) {
+	if (d[oldD] == 0) {
 		gap(oldD);
 		return;
 	}

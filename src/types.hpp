@@ -45,7 +45,6 @@ struct Node {
 	int tree; // current tree (simplex multiplier)
 
 	// doubly linked to allow simple deletion
-	NodeID qpPrev, qpNext;
 	NodeID qtPrev, qtNext;
 	NodeID qrPrev, qrNext;
 };

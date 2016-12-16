@@ -14,7 +14,7 @@
 
 #define GGT_RELABEL // Use GGT algorithm (enable relabeling)
 #ifdef GGT_RELABEL
-#define LAZY_RELABEL // use lazy relabeling heuristic
+//#define LAZY_RELABEL // use lazy relabeling heuristic
 //#define GLOBAL_RELABEL // use global update heuristic
 #define GAP_RELABEL // use gap relabeling heuristic
 #endif
@@ -39,10 +39,11 @@ public:
 	NodeID source; // source node pointer
 	NodeID sink; // sink node pointer
 	Flow flow; // flow value
-	std::vector<NodeID> dc; // for each level d maintains the number of nodes with label == d
+	std::vector<NodeID> d; // for each level k maintains the number of nodes with label == k
 	std::vector<int> color;
 	std::queue<NodeID> bfsq;
 	std::stack<NodeID> dfss;
+	std::vector<ArcID> dfsiv;
 
 	// pivot vertex queue (vertices (of S) with at least 1 outgoing pivot)
 	// current t vertices queue

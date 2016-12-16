@@ -31,9 +31,10 @@ NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(istream& is, int format, int verbos
 	// allocate
 	qt.initialize();
 	qr.initialize();
-	dc.resize(nSentinel+1); dc.shrink_to_fit();
-	fill(dc.begin(), dc.end(), 0);
-	color.resize(nSentinel+1); color.shrink_to_fit();
+	d.resize(nSentinel+1); d.shrink_to_fit();
+	fill(d.begin(), d.end(), 0);
+	color.resize(nMax+1); color.shrink_to_fit();
+	dfsiv.resize(nMax+1); dfsiv.shrink_to_fit();
 }
 
 // destructor
