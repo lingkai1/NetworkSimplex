@@ -586,7 +586,8 @@ void NetworkMaxFlowSimplex::setLabel(NodeID v, Dist k) {
 }
 
 bool NetworkMaxFlowSimplex::isCurrent(NodeID v) {
-	Node& nv = nodes[v];
+	return !qr.contains(v);
+	/*Node& nv = nodes[v];
 	forAllOutArcs(v, vu, is) {
 		Node& nv = nodes[v];
 		Arc& avu = arcs[vu]; NodeID u = avu.head; Node& nu = nodes[u];
@@ -598,7 +599,7 @@ bool NetworkMaxFlowSimplex::isCurrent(NodeID v) {
 			}
 		}
 	}
-	return false;
+	return false;*/
 }
 
 
