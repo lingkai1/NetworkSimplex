@@ -1,8 +1,10 @@
 #ifndef NMFS_H_
 #define NMFS_H_
 
-#include "types.hpp"
+//#define NDEBUG
 #include "assert.h"
+
+#include "types.hpp"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -14,10 +16,17 @@
 
 #define GGT_RELABEL // Use GGT algorithm (enable relabeling)
 #ifdef GGT_RELABEL
-//#define LAZY_RELABEL // use lazy relabeling heuristic 1
-//#define LAZY_RELABEL2 // use lazy relabeling heuristic 2
-//#define GLOBAL_RELABEL // use global update heuristic
 #define GAP_RELABEL // use gap relabeling heuristic
+// choose only 1 of the 2
+#define LAZY_RELABEL // use lazy relabeling heuristic 1
+//#define LAZY_RELABEL2 // use lazy relabeling heuristic 2 need to optimize code, bugs with GU
+#define GLOBAL_RELABEL // use global update heuristic
+// choose only 1 of the 4
+#define LEAVING_ARC_NEAR_S
+//#define LEAVING_ARC_NEAR_T
+//#define LEAVING_ARC_NEAR_PIVOT // may be faster
+//#define LEAVING_ARC_FARFROM_PIVOT
+// need to do some optimization for relabel labels
 #endif
 
 
