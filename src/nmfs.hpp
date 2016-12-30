@@ -17,16 +17,15 @@
 #define GGT_RELABEL // Use GGT algorithm (enable relabeling)
 #ifdef GGT_RELABEL
 #define GAP_RELABEL // use gap relabeling heuristic
-// choose only 1 of the 2
-#define LAZY_RELABEL // use lazy relabeling heuristic 1
-//#define LAZY_RELABEL2 // use lazy relabeling heuristic 2 need to optimize code, bugs with GU
+#define LAZY_RELABEL // use lazy relabeling heuristic
 #define GLOBAL_RELABEL // use global update heuristic
+#define GU_FREQ 0.2
+#define RELABEL_OPT // relabel optimization
 // choose only 1 of the 4
-#define LEAVING_ARC_NEAR_S
+//#define LEAVING_ARC_NEAR_S
 //#define LEAVING_ARC_NEAR_T
-//#define LEAVING_ARC_NEAR_PIVOT // may be faster
+#define LEAVING_ARC_NEAR_PIVOT // may be faster
 //#define LEAVING_ARC_FARFROM_PIVOT
-// need to do some optimization for relabel labels
 #endif
 
 
@@ -58,15 +57,15 @@ public:
 	// pivot vertex queue (vertices (of S) with at least 1 outgoing pivot)
 	// current t vertices queue
 #define bpq(name) qt##name
-#define BPQ_CUR_T
+#define BPQ_QT
 #include "bpq.hpp"
-#undef BPQ_CUR_T
+#undef BPQ_QT
 #undef bpq
 	// to relabel queue
 #define bpq(name) qr##name
-#define BPQ_RELABEL
+#define BPQ_QR
 #include "bpq.hpp"
-#undef BPQ_RELABEL
+#undef BPQ_QR
 #undef bpq
 
 	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
@@ -95,7 +94,7 @@ public:
 
 	bool isTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu) { return nv.parent == vu || nu.parent == uv; }
 	bool isResidual(Arc& auv) { return auv.resCap > 0; }
-	bool isResidualOrTreeArc(Node& nu, Node& nv, ArcID uv, ArcID vu, Arc& auv) { return isResidual(auv) || isTreeArc(nu, nv, uv, vu); }
+	bool isPseudoResidual(Node& nu, Node& nv, ArcID uv, ArcID vu, Arc& auv) { return isResidual(auv) || isTreeArc(nu, nv, uv, vu); }
 	bool isPivot(Node& nu, Node& nv, Arc& auv) { return isResidual(auv) && nu.tree == IN_S && nv.tree == IN_T; }
 	bool isInPivot(Node& nv, Arc& avu) { return isResidual(avu) && nv.tree == IN_S; }
 	bool isOutPivot(Node& nv, Arc& auv) { return isResidual(auv) && nv.tree == IN_T; }
@@ -122,7 +121,7 @@ private:
 #endif
 	void globalUpdate();
 
-	void processQr();
+	void relabelPhase();
 	bool makeCur(NodeID v);
 	void relabel(NodeID v);
 #if defined(GAP_RELABEL)
@@ -193,7 +192,7 @@ private:
 			Node& nv = nodes[v];
 			Arc& avu = arcs[vu]; NodeID u = avu.head; Node& nu = nodes[u];
 			ArcID uv = avu.rev; Arc& auv = arcs[uv];
-			Dist luv = isResidualOrTreeArc(nu, nv, uv, vu, auv) ? 1 : INF_DIST;
+			Dist luv = isPseudoResidual(nu, nv, uv, vu, auv) ? 1 : INF_DIST;
 			//		if (u != sink) {
 			if (nv.d > nu.d + luv) {
 				r = false;
@@ -220,7 +219,7 @@ private:
 		ArcID vu = nv.cur; Arc& avu = arcs[vu];
 		NodeID u = avu.head; Node& nu = nodes[u];
 		ArcID uv = avu.rev; Arc& auv = arcs[uv];
-		if (isResidualOrTreeArc(nu, nv, uv, vu, auv)) {
+		if (isPseudoResidual(nu, nv, uv, vu, auv)) {
 			if (nv.d != nu.d + 1) {
 				std::cerr<<"v:"<<v<<", u:"<<u<<" ";
 				std::cerr<<"dv="<<nv.d;

@@ -27,14 +27,19 @@ struct  bpq() { // bucket based priority queue
 
 	bool contains(NodeID v) {
 		Node& nv = nodes[v];
-		assert((nv.bpq(Prev) == UNDEF_NODE) == (nv.bpq(Next) == UNDEF_NODE));
 		return nv.bpq(Prev) != UNDEF_NODE;
 	}
 
 	void insert(NodeID v, Dist k) {
 		assert(!contains(v));
-		assert(0 <= k); assert(k <= nSentinel);
 		Node& nv = nodes[v];
+#if defined(RELABEL_OPT) && defined(BPQ_QR)
+		k += 1;
+		p.d[nv.d]--;
+		nv.d = k;
+		p.d[nv.d]++;
+#endif
+		assert(0 <= k); assert(k <= nSentinel);
 		NodeID w = first[k]; Node& nw = nodes[w];
 
 		nv.bpq(Next) = w;
@@ -64,7 +69,7 @@ struct  bpq() { // bucket based priority queue
 			nw.bpq(Prev) = u;
 		}
 
-		nv.bpq(Prev) = nv.bpq(Next) = UNDEF_NODE;
+		nv.bpq(Prev) = UNDEF_NODE;
 
 		while (first[dmin] == nSentinel && dmin <= dmax)
 			dmin++;
@@ -94,43 +99,11 @@ struct  bpq() { // bucket based priority queue
 			return v;
 		}
 		else {
+			dmin = nSentinel;
+			dmax = 0;
 			return UNDEF_NODE;
 		}
 	}
-
-	NodeID peekMin() {
-		while (first[dmin] == nSentinel && dmin <= dmax)
-			dmin++;
-		if (dmin <= dmax) {
-			return first[dmin];
-		}
-		else {
-			return UNDEF_NODE;
-		}
-	}
-	bool empty() {
-		return peekMin() == UNDEF_NODE;
-	}
-
-#if defined(BPQ_RELABEL)
-	// returns true if qr is empty (or does not need to be processed further in the lazy relabeling case)
-	bool processed() {
-		while (first[dmin] == nSentinel && dmin <= dmax) {
-			dmin++;
-		}
-		if (dmin <= dmax) {
-#if defined(LAZY_RELABEL) || defined(LAZY_RELABEL2)
-			if (dmin >= p.qt.dmin) {
-				return true;
-			}
-#endif
-			return false;
-		}
-		else {
-			return true;
-		}
-	}
-#endif
 
 } bpq();
 
