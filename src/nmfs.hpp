@@ -40,6 +40,8 @@ public:
 	int verbose;
 	NodeID n; // number of nodes
 	ArcID m; // number of arcs
+	ArcID mMin;
+	ArcID mMax;
 	NodeID nMin; // smallest node id
 	NodeID nMax; // highest node id
 	NodeID nSentinel; // end of the node list marker == nMax+1
@@ -101,6 +103,10 @@ public:
 
 private:
 	void initialize();
+	void addReverseArcs(std::vector<NodeID>& tails);
+	void sortArcs(std::vector<NodeID>& tails);
+	void mergeAddParallelArcs(std::vector<NodeID>& tails);
+	void setFirstArcs(std::vector<NodeID>& tails);
 	void constructorDimacs(std::istream& is);
 	void constructorDimacsFail(int lineNum, int code);
 
