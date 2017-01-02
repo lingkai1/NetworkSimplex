@@ -70,7 +70,7 @@ public:
 #undef BPQ_QR
 #undef bpq
 
-	NetworkMaxFlowSimplex(std::istream& is, int format = FORMAT_DIMACS, int verbose = 0);
+	NetworkMaxFlowSimplex(FILE* f, int format = FORMAT_DIMACS, int verbose = 0);
 	~NetworkMaxFlowSimplex();
 
 	template <typename PrintNode> void printSubTree(NodeID root, const PrintNode& print);
@@ -102,12 +102,11 @@ public:
 	bool isOutPivot(Node& nv, Arc& auv) { return isResidual(auv) && nv.tree == IN_T; }
 
 private:
-	void initialize();
 	void addReverseArcs(std::vector<NodeID>& tails);
 	void sortArcs(std::vector<NodeID>& tails);
 	void mergeAddParallelArcs(std::vector<NodeID>& tails);
 	void setFirstArcs(std::vector<NodeID>& tails);
-	void constructorDimacs(std::istream& is);
+	void constructorDimacs(FILE* f);
 	void constructorDimacsFail(int lineNum, int code);
 
 

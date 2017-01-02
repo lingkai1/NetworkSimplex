@@ -1,154 +1,24 @@
 #include <sstream>
 
 #include "nmfs.hpp"
-#include "util.hpp"
 #include "parser.hpp"
 
 using namespace std;
 
-void NetworkMaxFlowSimplex::addReverseArcs(vector<NodeID>& tails) {
-
-	// add reverse arcs
-	ArcID vu = mMax+1;
-	for (ArcID uv = mMin; uv <= mMax; uv++) {
-		Arc& auv = arcs[uv];
-		NodeID v = auv.head; Node& nv = nodes[v];
-		NodeID u = tails[uv]; Node& nu = nodes[u];
-		Arc avu;
-		auv.rev = vu;
-		avu.head = u;
-		avu.resCap = 0;
-		avu.rev = uv;
-		tails.push_back(v);
-		arcs.push_back(avu);
-		vu++;
-	}
-
-	m = (ArcID)arcs.size();
-	mMin = 0;
-	mMax = m - 1;
-}
 
 
-void NetworkMaxFlowSimplex::sortArcs(vector<NodeID>& tails) {
-
-	// sort arcs
-	vector<ArcID>& p = *new vector<ArcID>(arcs.size());
-	sortPermutation(p, [&](ArcID i, ArcID j){ Arc& ai = arcs[i], & aj = arcs[j];
-	return (tails[i] < tails[j] || (tails[i] == tails[j] && ai.head < aj.head));
-	} );
-	applyPermutation(arcs, p);
-	applyPermutation(tails, p);
-
-	// determine reverse arcs
-	// compute p inverse
-	vector<ArcID>& q = *new vector<ArcID>(p.size());
-	for (ArcID i = mMin; i <= mMax; i++)
-		q[p[i]] = i;
-	delete &p;
-	// fix reverse arcs
-	for (ArcID i = mMin; i <= mMax; i++)
-		if (arcs[i].rev != UNDEF_ARC)
-			arcs[i].rev = q[arcs[i].rev];
-	delete &q;
-}
-
-void NetworkMaxFlowSimplex::mergeAddParallelArcs(vector<NodeID>& tails) {
-
-	// merge parallel arcs and fix reverse arcs again
-	ArcID i;
-	ArcID ni;
-	for (i = 0, ni = 0; i <= mMax; ) {
-		Cap totCap = 0;
-
-		ArcID revMin = mMax+1;
-		do {
-			if (arcs[i].rev < revMin)
-				revMin = arcs[i].rev;
-			totCap += arcs[i].resCap;
-			i++;
-		} while (i <= mMax && tails[i] == tails[ni] && arcs[i].head == arcs[ni].head);
-
-		if (tails[ni] < arcs[ni].head) {
-			if (revMin <= mMax) {
-				arcs[revMin].rev = ni;
-				//arcs[ni].rev = revMin;
-			}
-		}
-		else {
-			arcs[arcs[ni].rev].rev = ni;
-		}
-
-		arcs[ni].resCap = totCap;
-		ni++;
-		if (i <= mMax) {
-			arcs[ni] = arcs[i];
-			tails[ni] = tails[i];
-		}
-	}
-	mMax = ni - 1;
-	m = mMax - mMin + 1;
-	arcs.resize(mMax+1+1);
-
-	/*// eliminate parallel arcs and fix reverse arcs again
-	ArcID i, ni;
-	for (i = 0, ni = 0; i < m; ) {
-		ArcID revMin = arcs[i].rev;
-		Cap totCap = 0;
-		do {
-			if (arcs[i].rev < revMin)
-				revMin = arcs[i].rev;
-			totCap += arcs[i].resCap;
-			i++;
-		} while (i < m && tails[i] == tails[ni] && arcs[i].head == arcs[ni].head);
-		if (tails[ni] < arcs[ni].head)
-			arcs[revMin].rev = ni;
-		else
-			arcs[arcs[ni].rev].rev = ni;
-		arcs[ni].resCap = totCap;
-		ni++;
-		if (i < m) {
-			arcs[ni] = arcs[i];
-			tails[ni] = tails[i];
-		}
-	}
-	mMax = ni - 1;
-	m = mMax - mMin + 1;
-	arcs.resize(mMax+1+1);*/
-}
-
-void NetworkMaxFlowSimplex::setFirstArcs(vector<NodeID>& tails) {
-
-	// determine first arcs
-	for (ArcID i = mMin; i <= mMax; i++) {
-		NodeID u = tails[i];
-		if (nodes[u].first == UNDEF_ARC)
-			nodes[u].first = i;
-	}
-	// sentinel node
-	Node& node = nodes[nMax+1];
-	node.first = mMax+1;
-	for (NodeID u = nMax; u >= 0; u--) {
-		if (nodes[u].first == UNDEF_ARC)
-			nodes[u].first = nodes[u+1].first;
-	}
-	node.d = nMax+1;
-
-}
-
-void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
+void NetworkMaxFlowSimplex::constructorDimacs(FILE* f) {
 	string line;
 	int lineNum;
 	string s;
 	char c;
 	NodeID u;
 	ArcID i;
-	// not sure this is the most efficient way of parsing text files in C++. May be improved.
 
 	if (verbose >= 1) cout << "Parsing dimacs format" << endl;
 
 	lineNum = 0;
-	Parser& pr = *new Parser(1024, stdin);
+	Parser& pr = *new Parser(1024, f);
 
 	while (true) {
 		lineNum++;
@@ -232,12 +102,11 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 			break;
 		}
 	}
-
-	delete &pr;
-
 	m = (ArcID)arcs.size();
 	mMin = 0;
 	mMax = m - 1;
+
+	delete &pr;
 
 	addReverseArcs(tails);
 
@@ -251,7 +120,6 @@ void NetworkMaxFlowSimplex::constructorDimacs(istream& is) {
 
 	nodes.shrink_to_fit();
 	arcs.shrink_to_fit();
-
 
 	if (verbose >= 1) cout << "n: " << n << " m: " << m << endl;
 
