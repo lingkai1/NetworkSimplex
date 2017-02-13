@@ -16,6 +16,9 @@ NetworkMaxFlowSimplex::NetworkMaxFlowSimplex(FILE* f, int format, int verbose) :
 	case FORMAT_DIMACS: {
 		constructorDimacs(f);
 	}	break;
+	case FORMAT_BK: {
+		constructorBk(f);
+	}
 	default:
 		break;
 	}

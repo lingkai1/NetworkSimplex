@@ -36,6 +36,7 @@ double timer();
 class NetworkMaxFlowSimplex {
 public:
 	const static int FORMAT_DIMACS = 1;
+	const static int FORMAT_BK = 2;
 
 	int verbose;
 	NodeID n; // number of nodes
@@ -108,6 +109,8 @@ private:
 	void setFirstArcs(std::vector<NodeID>& tails);
 	void constructorDimacs(FILE* f);
 	void constructorDimacsFail(int lineNum, int code);
+	void constructorBk(FILE* f);
+	void constructorBkFail(int lineNum, int code);
 
 
 	ArcID extractMinPivot();

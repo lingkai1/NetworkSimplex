@@ -29,6 +29,7 @@ NMFS_OBJ += $(NMFS_ODIR)/main.o
 NMFS_OBJ += $(NMFS_ODIR)/timer.o
 NMFS_OBJ += $(NMFS_ODIR)/nmfs_util.o
 NMFS_OBJ += $(NMFS_ODIR)/dimacs.o
+NMFS_OBJ += $(NMFS_ODIR)/bk.o
 NMFS_OBJ += $(NMFS_ODIR)/solver.o
 NMFS_CFLAGS = $(CFLAGS_OPT)
 NMFS_BIN = $(BDIR)/nmfs
